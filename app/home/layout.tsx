@@ -6,7 +6,7 @@ import BottomNavbar from "./components/bottomNavBar";
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen overflow-auto">
       {/* Sidebar */}
     
     <div className="block sm:hidden md:block">
@@ -20,12 +20,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col sm:pb-16  md:pb-0 md:pb-3 bg-background">
         {/* Navbar */}
         <Navbar />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-gray-900 text-foreground"> {/*added padding for main content*/}
+        <main className="flex-1 overflow-y-auto bg-background text-foreground"> {/*added padding for main content*/}
           {children}
         </main>
         {/* Bottom Navbar (shown on small screens) */}

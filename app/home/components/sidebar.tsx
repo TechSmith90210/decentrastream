@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { AlignJustify } from "lucide-react";
 import { createContext, useContext, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const SideBarContext = createContext({ expanded: true });
 
@@ -63,19 +64,25 @@ export function SideBarItem({
   active: boolean;
 }) {
   const { expanded } = useContext(SideBarContext);
+  const router = useRouter();
+
+  const handleClick = () => {
+    if (text === "Home") router.push("/home");
+    else router.push(`/home/${text.toLowerCase()}`);
+  };
 
   return (
     <li
-      className={`relative flex items-center py-2 px-3 my-1 font-medium rounded-md cursor-pointer transition-colors group
+      className={`relative flex items-center mt-4 py-2 px-3 my-1 font-medium rounded-md cursor-pointer transition-colors group
         ${
           active
             ? "bg-accent text-foreground"
             : " hover:bg-gray-800 text-mutedText"
         }
       `}
+      onClick={handleClick} // ✅ Route navigation on click
     >
       {icon}
-      {/* Label with smooth transition */}
       <span
         className={`text-sm font-body overflow-hidden transition-all ${
           expanded ? "w-52 ml-3" : "w-0 hidden"
@@ -84,7 +91,6 @@ export function SideBarItem({
         {text}
       </span>
 
-      {/* Tooltip when collapsed */}
       {!expanded && (
         <div
           className="absolute left-full ml-3 px-2 py-1 rounded-md bg-accent text-foreground text-sm opacity-0 

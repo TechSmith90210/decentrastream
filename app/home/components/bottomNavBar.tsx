@@ -1,25 +1,36 @@
-import React from 'react';
-import { Home, Upload, Settings, Flame } from 'lucide-react';
+"use client";
+
+import React from "react";
+import { useRouter } from "next/navigation";
+import { Home, Upload, Settings, Flame } from "lucide-react";
+
+const navItems = [
+  { label: "Home", icon: Home },
+  { label: "Upload", icon: Upload },
+  { label: "Trending", icon: Flame },
+  { label: "Settings", icon: Settings },
+];
 
 const BottomNavbar: React.FC = () => {
+  const router = useRouter();
+
+  const handleNavigation = (label: string) => {
+    if (label === "Home") router.push("/home");
+    else router.push(`/home/${label.toLowerCase()}`);
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 w-full bg-secondary text-foreground p-4 flex justify-around">
-      <a href="#" className="flex flex-col items-center">
-        <Home className="w-6 h-6" />
-        <span className="text-xs">Home</span>
-      </a>
-      <a href="#" className="flex flex-col items-center">
-        <Upload className="w-6 h-6" />
-        <span className="text-xs">Upload</span>
-      </a>
-      <a href="#" className="flex flex-col items-center">
-        <Flame className="w-6 h-6" />
-        <span className="text-xs">Trending</span>
-      </a>
-      <a href="#" className="flex flex-col items-center">
-        <Settings className="w-6 h-6" />
-        <span className="text-xs">Settings</span>
-      </a>
+      {navItems.map(({ label, icon: Icon }) => (
+        <button
+          key={label}
+          onClick={() => handleNavigation(label)}
+          className="flex flex-col items-center focus:outline-none"
+        >
+          <Icon className="w-5 h-5" />
+          <span className="text-xs pt-1">{label}</span>
+        </button>
+      ))}
     </nav>
   );
 };
