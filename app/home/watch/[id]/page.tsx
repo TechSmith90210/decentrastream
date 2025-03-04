@@ -4,6 +4,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
 const WatchVideo: React.FC = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id } = useParams(); // Get video ID from URL
   const searchParams = useSearchParams(); // Get query params
 

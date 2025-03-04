@@ -21,10 +21,10 @@ type VideoGridItemProps = {
 export function VideoGridItem({
   id,
   title,
-  duration,
+  // duration,
   channel,
   thumbnailurl,
-  postedAt,
+  // postedAt,
   views,
 }: VideoGridItemProps) {
   return (
