@@ -1,14 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { AlignJustify } from "lucide-react";
+import { AlignJustify, LogOut } from "lucide-react";
 import { createContext, useContext, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDisconnect } from "wagmi";
 
 const SideBarContext = createContext({ expanded: true });
 
 export default function SideBar({ children }: { children: React.ReactNode }) {
   const [expanded, setExpanded] = useState(false);
+  const { disconnect } = useDisconnect(); // Wagmi hook for disconnecting MetaMask
+
+  const handleLogout = () => {
+    disconnect(); // Disconnect the wallet
+  };
 
   return (
     <>
@@ -47,6 +53,15 @@ export default function SideBar({ children }: { children: React.ReactNode }) {
 
           <SideBarContext.Provider value={{ expanded }}>
             <ul className="flex-1 px-3">{children}</ul>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-start py-2 px-3 my-2 font-medium rounded-md text-red-500 hover:bg-gray-800 transition-all"
+            >
+              <LogOut />
+              {expanded && <span className="ml-3">Logout</span>}
+            </button>
           </SideBarContext.Provider>
         </nav>
       </aside>
@@ -80,7 +95,7 @@ export function SideBarItem({
             : " hover:bg-gray-800 text-mutedText"
         }
       `}
-      onClick={handleClick} // ✅ Route navigation on click
+      onClick={handleClick}
     >
       {icon}
       <span

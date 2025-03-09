@@ -20,7 +20,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col sm:pb-16  md:pb-0 md:pb-3 bg-background">
+      <div className="flex-1 flex flex-col sm:pb-16 md:pb-3 bg-background">
         {/* Navbar */}
         <Navbar />
 
