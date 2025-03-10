@@ -82,8 +82,9 @@ export function SideBarItem({
   const router = useRouter();
 
   const handleClick = () => {
-    if (text === "Home") router.push("/home");
-    else router.push(`/home/${text.toLowerCase()}`);
+    const formattedText = text.toLowerCase();
+    const path = formattedText === "home" ? "/home" : `/${formattedText}`;
+    router.push(path);
   };
 
   return (

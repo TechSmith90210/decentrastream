@@ -1,4 +1,4 @@
-"use client"; // ✅ Add this at the top
+"use client";
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -41,7 +41,8 @@ const videos = [
   },
   {
     id: "4",
-    title: "Man Builds DIY ANTI-RAIN Motorcycle | Start to Finish by ‪@mwigmedia‬",
+    title:
+      "Man Builds DIY ANTI-RAIN Motorcycle | Start to Finish by ‪@mwigmedia‬",
     duration: "16:30",
     channel: { id: "1", name: "Quantum Tech HD", profileUrl: "/profile.png" },
     videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
@@ -74,9 +75,9 @@ const HomePage: React.FC = () => {
   }, [isConnected, router]);
 
   return (
-    <div className="bg-background p-4 h-screen flex flex-col">
+    <div className="bg-background p-8 min-h-[100dvh] flex flex-col">
       <h1 className="text-foreground font-heading text-3xl">Popular Videos</h1>
-      <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4 gap-4">
+      <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-2 gap-4">
         {videos.map((video) => (
           <VideoGridItem key={video.id} {...video} />
         ))}

@@ -1,11 +1,11 @@
 import React from "react";
-import SideBar, { SideBarItem } from "./components/sidebar";
-import Navbar from "./components/navbar";
 import { Home, Upload, Settings, 
     // Flame
 
 } from "lucide-react";
-import BottomNavbar from "./components/bottomNavBar";
+import SideBar, { SideBarItem } from "../home/components/sidebar";
+import Navbar from "../components/navbar";
+import BottomNavbar from "../home/components/bottomNavBar";
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -14,10 +14,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     
     <div className="block sm:hidden md:block">
     <SideBar>
-        <SideBarItem text="Home" icon={<Home />} active />
+        <SideBarItem text="Home" icon={<Home />} active={false} />
         <SideBarItem text="Upload" icon={<Upload />} active={false} />
         {/* <SideBarItem text="Trending" icon={<Flame />} active={false} /> */}
-        <SideBarItem text="Settings" icon={<Settings />} active={false} />
+        <SideBarItem text="Settings" icon={<Settings />} active />
       </SideBar>
     </div>
       
