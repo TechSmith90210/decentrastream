@@ -2,7 +2,13 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: [], // Add any domains you need for images
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "ipfs.io",
+        pathname: "/ipfs/**",
+      },
+    ],
   },
   env: {
     SITE_NAME: "DecentraStream",

@@ -1,59 +1,75 @@
 "use client";
 
-import { useParams, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react"; // Import useState and useEffect
+import { useSearchParams } from "next/navigation"; // Use useSearchParams for accessing query params
 import Image from "next/image";
 
-const WatchVideo: React.FC = () => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id } = useParams(); // Get video ID from URL
-  const searchParams = useSearchParams(); // Get query params
+// Function to generate correct IPFS gateway URL
+const getIPFSUrl = (cid: string) => `https://ipfs.io/ipfs/${cid}`;
 
-  // Extract values from search params
-  const title = searchParams.get("title") || "Unknown Title";
-  const views = searchParams.get("views") || "0";
-  const channelName = searchParams.get("channel") || "Unknown Channel";
-  const videoUrl = searchParams.get("videoUrl") || "/video.mp4";
-  const thumbnail = searchParams.get("thumbnail") || "/placeholder.jpg";
+const WatchVideo: React.FC = () => {
+  interface VideoData {
+    videoUrl: string;
+    title: string;
+    description: string;
+    thumbnailUrl: string;
+    owner: string;
+  }
+
+  const [videoData, setVideoData] = useState<VideoData | null>(null); // Store all video data
+  const [loading, setLoading] = useState<boolean>(true); // Add a loading state
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams) {
+      const videoUrl = searchParams.get('videoUrl');
+      const title = searchParams.get('title');
+      const description = searchParams.get('description');
+      const thumbnailurl = searchParams.get('thumbnailurl');
+      const owner = searchParams.get('owner');
+
+      if (videoUrl && title && description && thumbnailurl && owner) {
+        setVideoData({
+          videoUrl: decodeURIComponent(videoUrl),
+          title: decodeURIComponent(title),
+          description: decodeURIComponent(description),
+          thumbnailUrl: decodeURIComponent(thumbnailurl),
+          owner: decodeURIComponent(owner),
+        });
+      }
+      setLoading(false); // Set loading to false once params are processed
+    }
+  }, [searchParams]);
+
+  if (loading) {
+    return <p className="text-blue-500">Loading...</p>; // Show loading message while data is being processed
+  }
+
+  if (!videoData) {
+    return <p className="text-red-500">Error: Video data is missing.</p>;
+  }
+
+  const { videoUrl, title, description, thumbnailUrl, owner } = videoData;
+  const videoSrc = getIPFSUrl(videoUrl); // Construct the video URL for IPFS
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-background text-foreground">
-      {/* Left Section (Video Player) */}
       <div className="w-full md:w-[70%] flex flex-col p-4">
-        <video controls className="w-full h-auto max-h-[80vh] rounded-lg">
-          <source src={videoUrl} type="video/mp4" />
+        <video controls autoPlay className="w-full h-auto max-h-[80vh] rounded-lg">
+          <source src={videoSrc} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-
-        {/* Video Title & Metadata */}
-        <h1 className="text-2xl font-bold mt-4">{title}</h1>
-        <p className="text-sm text-mutedText">{views} views</p>
-
-        {/* Channel Info */}
+        <h1 className="text-2xl font-bold mt-4">{title || "Untitled Video"}</h1>
+        <p className="text-sm text-mutedText">{description || "No description available"}</p>
         <div className="flex items-center mt-2">
           <Image
-            src={thumbnail}
-            alt={channelName}
+            src={thumbnailUrl || "/profile.png"}
+            alt={title || "Video Thumbnail"}
             width={40}
             height={40}
             className="w-10 h-10 rounded-full"
           />
-          <p className="ml-3 text-md font-medium">{channelName}</p>
-        </div>
-      </div>
-
-      {/* Right Section (Comments / Recommendations) */}
-      <div className="w-full md:w-[30%] p-4 overflow-y-auto">
-        <h2 className="text-xl font-bold mb-2">Recommended Videos</h2>
-        <div className="space-y-3">
-          <div className="p-2 h-40 w-auto bg-secondary border border-gray-800 rounded-md">
-            Video 1
-          </div>
-          <div className="p-2 h-40 w-auto bg-secondary border border-gray-800 rounded-md">
-            Video 2
-          </div>
-          <div className="p-2 h-40 w-auto bg-secondary border border-gray-800 rounded-md">
-            Video 3
-          </div>
+          {owner}
         </div>
       </div>
     </div>
