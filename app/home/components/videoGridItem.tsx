@@ -36,7 +36,7 @@ export function VideoGridItem({
           <div className="absolute bottom-0 left-0 right-0 p-2 bg-black bg-opacity-50 rounded-b-md">
             <h4 className="text-sm font-body text-foreground line-clamp-1">{title}</h4>
             <div className="flex items-center justify-between mt-1">
-              <p className="text-xs font-body text-mutedText">{description}</p>
+              <p className="text-xs font-body text-mutedText line-clamp-1">{description}</p>
             </div>
           </div>
         </div>

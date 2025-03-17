@@ -4,6 +4,7 @@ import { Kanit, Sora } from "next/font/google";
 import { headers } from "next/headers";
 import ContextProvider from "@/context";
 import Providers from "./providers";
+import { Toaster } from "react-hot-toast";
 
 const kanit = Kanit({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-kanit" });
 const sora = Sora({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-sora" });
@@ -23,7 +24,10 @@ export default async function RootLayout({
     <html lang="en" className={`${kanit.variable} ${sora.variable}`}>
       <body className="font-body antialiased">
         <ContextProvider cookies={cookies}>
-          <Providers>{children}</Providers> 
+          <Providers>
+            <Toaster position="bottom-center" />
+            {children}
+          </Providers>
         </ContextProvider>
       </body>
     </html>

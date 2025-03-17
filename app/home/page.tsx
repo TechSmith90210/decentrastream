@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount, useReadContract } from "wagmi";
 import { VideoGridItem } from "./components/videoGridItem";
-import { contractAddress, contractAbi } from "../../lib/constants";
+import { videoContractAddress, videoContractAbi } from "../../lib/constants";
 import { VideoGridItemProps } from "@/lib/types";
 import { VideoDataFromContract } from "@/lib/types";
 
@@ -16,7 +16,7 @@ const HomePage: React.FC = () => {
   // Memoize formatIPFSUrl with useCallback to avoid unnecessary re-renders
   const formatIPFSUrl = useCallback((cid?: string): string => {
     const cleanCID = (cid?: string) => cid ? cid.replace(/^ipfs:\/\//, "").trim() : "";
-    return cid ? `https://ipfs.io/ipfs/${cleanCID(cid)}` : "/placeholder.jpg";
+    return cid ? `https://ipfs.io/ipfs/${cleanCID(cid)}` : "/avatar.jpg";
   }, []);
 
   // Fetch videos from the smart contract
@@ -25,8 +25,8 @@ const HomePage: React.FC = () => {
     isLoading,
     refetch,
   } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: contractAbi,
+    address: videoContractAddress as `0x${string}`,
+    abi: videoContractAbi,
     functionName: "getAllVideos",
   });
 
@@ -89,9 +89,9 @@ const HomePage: React.FC = () => {
       <h1 className="text-foreground font-heading text-3xl">Popular Videos</h1>
 
       {isLoading ? (
-        <p className="text-gray-400">Loading videos...</p>
+        <p className="text-mutedText pt-3">Loading videos...</p>
       ) : videos.length > 0 ? (
-        <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-2 gap-4">
+        <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-2 gap-4 pt-3">
           {videos.map((video) => (
             <VideoGridItem
               key={video.id}

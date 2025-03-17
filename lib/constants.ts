@@ -1,6 +1,7 @@
-export const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "";
+export const videoContractAddress = process.env.NEXT_PUBLIC_VIDEO_CONTRACT_ADDRESS || "";
+export const profileContractAddress = process.env.NEXT_PUBLIC_PROFILE_CONTRACT_ADDRESS || "";
 
-export const contractAbi = [
+export const videoContractAbi = [
   {
     anonymous: false,
     inputs: [
@@ -49,30 +50,6 @@ export const contractAbi = [
     type: "function",
   },
   {
-    inputs: [{ internalType: "uint256", name: "_id", type: "uint256" }],
-    name: "getVideo",
-    outputs: [
-      {
-        components: [
-          { internalType: "uint256", name: "id", type: "uint256" },
-          { internalType: "string", name: "title", type: "string" },
-          { internalType: "string", name: "description", type: "string" },
-          { internalType: "string", name: "videoCID", type: "string" },
-          { internalType: "string", name: "thumbnailCID", type: "string" },
-          { internalType: "string", name: "category", type: "string" },
-          { internalType: "string[]", name: "tags", type: "string[]" },
-          { internalType: "address", name: "owner", type: "address" },
-          { internalType: "uint256", name: "timestamp", type: "uint256" },
-        ],
-        internalType: "struct DecentraStream.Video",
-        name: "",
-        type: "tuple",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
     inputs: [
       { internalType: "string", name: "_title", type: "string" },
       { internalType: "string", name: "_description", type: "string" },
@@ -86,39 +63,83 @@ export const contractAbi = [
     stateMutability: "nonpayable",
     type: "function",
   },
+];
+
+export const profileContractAbi = [
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "address", name: "user", type: "address" },
+      { indexed: false, internalType: "string", name: "username", type: "string" },
+      { indexed: false, internalType: "uint256", name: "timestamp", type: "uint256" },
+    ],
+    name: "ProfileCreated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "address", name: "user", type: "address" },
+      { indexed: false, internalType: "string", name: "bio", type: "string" },
+      { indexed: false, internalType: "string", name: "profilePicCID", type: "string" },
+      { indexed: false, internalType: "uint256", name: "timestamp", type: "uint256" },
+    ],
+    name: "ProfileUpdated",
+    type: "event",
+  },
   {
     inputs: [
-      { internalType: "address", name: "", type: "address" },
-      { internalType: "uint256", name: "", type: "uint256" },
+      { internalType: "string", name: "_username", type: "string" },
+      { internalType: "string", name: "_bio", type: "string" },
+      { internalType: "string", name: "_profilePicCID", type: "string" },
     ],
-    name: "userVideos",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    name: "createProfile",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "string", name: "_username", type: "string" }],
+    name: "getAddressByUsername",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [],
-    name: "videoCount",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    name: "videos",
+    inputs: [{ internalType: "address", name: "_user", type: "address" }],
+    name: "getProfile",
     outputs: [
-      { internalType: "uint256", name: "id", type: "uint256" },
-      { internalType: "string", name: "title", type: "string" },
-      { internalType: "string", name: "description", type: "string" },
-      { internalType: "string", name: "videoCID", type: "string" },
-      { internalType: "string", name: "thumbnailCID", type: "string" },
-      { internalType: "string", name: "category", type: "string" },
-      { internalType: "address", name: "owner", type: "address" },
-      { internalType: "uint256", name: "timestamp", type: "uint256" },
+      {
+        components: [
+          { internalType: "string", name: "username", type: "string" },
+          { internalType: "string", name: "bio", type: "string" },
+          { internalType: "string", name: "profilePicCID", type: "string" },
+          { internalType: "uint256", name: "createdAt", type: "uint256" },
+          { internalType: "uint256", name: "updatedAt", type: "uint256" },
+        ],
+        internalType: "struct DecentraProfile.Profile",
+        name: "",
+        type: "tuple",
+      },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "_user", type: "address" }],
+    name: "hasProfile",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "string", name: "_bio", type: "string" },
+      { internalType: "string", name: "_profilePicCID", type: "string" },
+    ],
+    name: "updateProfile",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
 ];
-
-

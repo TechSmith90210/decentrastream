@@ -5,7 +5,8 @@ import { Video, Send, FileImage, X, Loader2 } from "lucide-react";
 import Image from "next/image";
 import axios from "axios";
 import { useWriteContract, useTransaction } from "wagmi";
-import { contractAddress, contractAbi } from "../../lib/constants";
+import { videoContractAddress, videoContractAbi } from "../../lib/constants";
+import { Config } from "tailwindcss";
 
 const UploadPage: React.FC = () => {
   const [thumbnail, setThumbnail] = useState<File | null>(null);
@@ -17,8 +18,10 @@ const UploadPage: React.FC = () => {
   const [tagInput, setTagInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [videoDetails, setVideoDetails] = useState<{ name: string; size: number; thumbnail: string | null }>({ name: "", size: 0, thumbnail: null });
 
-  const { data: txData, writeContract } = useWriteContract() as { data: { hash: `0x${string}` } | undefined, writeContract: any };
+  // TODO: Fix any type error in upload page.tsx
+  const { data: txData, writeContract } = useWriteContract() as { data: { hash: `0x${string}` } | undefined, writeContract: Config["writeContract"] };
   const { isLoading: isTxLoading, isSuccess } = useTransaction({
     hash: (txHash as `0x${string}`) ?? undefined,
   });
@@ -36,8 +39,17 @@ const UploadPage: React.FC = () => {
     type: "thumbnail" | "video"
   ) => {
     if (event.target.files && event.target.files[0]) {
-      if (type === "thumbnail") setThumbnail(event.target.files[0]);
-      else setVideo(event.target.files[0]);
+      const file = event.target.files[0];
+      if (type === "thumbnail") {
+        setThumbnail(file);
+      } else {
+        setVideo(file);
+        setVideoDetails({
+          name: file.name,
+          size: file.size,
+          thumbnail: URL.createObjectURL(file),
+        });
+      }
     }
   };
 
@@ -112,8 +124,8 @@ const UploadPage: React.FC = () => {
 
       // Call Smart Contract Function
       await writeContract({
-        address: contractAddress as `0x${string}`,
-        abi: contractAbi,
+        address: videoContractAddress as `0x${string}`,
+        abi: videoContractAbi,
         functionName: "uploadVideo",
         args: [title, description, videoCID, thumbnailCID, category, tags],
       });
@@ -145,6 +157,20 @@ const UploadPage: React.FC = () => {
           <Video className="w-6 h-6 text-gray-400" />
           <span className="text-xs text-gray-400">Click to upload</span>
         </label>
+        {videoDetails.thumbnail && (
+          <div className="flex flex-col items-center gap-2 mt-2">
+            <video
+              src={videoDetails.thumbnail}
+              controls
+              className="w-full rounded-lg"
+              style={{ height: "300px", objectFit: "contain" }} // Set the height and object-fit properties
+            />
+            <span className="text-sm text-gray-400">{videoDetails.name}</span>
+            <span className="text-sm text-gray-400">
+              {(videoDetails.size / (1024 * 1024)).toFixed(2)} MB
+            </span>
+          </div>
+        )}
 
         <label className="text-sm font-medium">Thumbnail</label>
         <label className="flex flex-col items-center justify-center gap-2 cursor-pointer border rounded-lg bg-background hover:bg-accent transition p-1">

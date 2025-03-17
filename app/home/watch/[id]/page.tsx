@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"; // Import useState and useEffect
 import { useSearchParams } from "next/navigation"; // Use useSearchParams for accessing query params
-import Image from "next/image";
+import WalletAvatar from "../../components/walletavatar";
+import { useAccount } from "wagmi";
 
 // Function to generate correct IPFS gateway URL
 const getIPFSUrl = (cid: string) => `https://ipfs.io/ipfs/${cid}`;
@@ -19,6 +20,8 @@ const WatchVideo: React.FC = () => {
   const [videoData, setVideoData] = useState<VideoData | null>(null); // Store all video data
   const [loading, setLoading] = useState<boolean>(true); // Add a loading state
   const searchParams = useSearchParams();
+  const { address } = useAccount(); // Get connected wallet address
+
 
   useEffect(() => {
     if (searchParams) {
@@ -49,31 +52,60 @@ const WatchVideo: React.FC = () => {
     return <p className="text-red-500">Error: Video data is missing.</p>;
   }
 
-  const { videoUrl, title, description, thumbnailUrl, owner } = videoData;
+  const { videoUrl, title, description, owner } = videoData;
   const videoSrc = getIPFSUrl(videoUrl); // Construct the video URL for IPFS
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-background text-foreground">
-      <div className="w-full md:w-[70%] flex flex-col p-4">
-        <video controls autoPlay className="w-full h-auto max-h-[80vh] rounded-lg">
+    <div className="flex flex-col md:flex-row h-screen bg-background text-foreground p-4">
+      {/* Left Section - Video & Details */}
+      <div className="w-full md:w-[70%] flex flex-col space-y-2">
+        <video controls autoPlay className="w-full h-auto max-h-[70vh] rounded-lg shadow-lg">
           <source src={videoSrc} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        <h1 className="text-2xl font-bold mt-4">{title || "Untitled Video"}</h1>
+  
+        <h1 className="text-2xl font-bold">{title || "Untitled Video"}</h1>
         <p className="text-sm text-mutedText">{description || "No description available"}</p>
-        <div className="flex items-center mt-2">
-          <Image
-            src={thumbnailUrl || "/profile.png"}
-            alt={title || "Video Thumbnail"}
-            width={40}
-            height={40}
-            className="w-10 h-10 rounded-full"
+  
+        {/* Owner Section */}
+        <div className="flex items-center gap-4 pt-3">
+          {address && <WalletAvatar address={address} size={30} />}
+          <h6 className="text-sm font-medium">{owner}</h6>
+        </div>
+      </div>
+  
+      {/* Right Section - Comments */}
+      <div className="w-full md:w-[30%] mt-6 md:mt-0 md:pl-6 flex flex-col">
+        <h2 className="text-lg font-semibold mb-3">Comments</h2>
+        
+        {/* Comment List */}
+        <div className="bg-secondary p-4 rounded-lg shadow max-h-[60vh] overflow-y-auto space-y-3">
+          {/* Example Comments (Replace with Dynamic Data) */}
+          <div className="flex flex-col p-3 bg-accent/15 rounded-md">
+            <h5 className="text-sm text-foreground font-medium">Johnnascus</h5>
+            <p className="text-sm text-mutedText">Great video! 🔥</p>
+          </div>
+          <div className="flex flex-col p-3 bg-accent/15 rounded-md">
+            <h5 className="text-sm text-foreground font-medium">2hollis</h5>
+            <p className="text-sm text-mutedText">What a clean and minimal UI, Amazing!</p>
+          </div>
+        </div>
+  
+        {/* Comment Input */}
+        <div className="mt-4 flex">
+          <input
+            type="text"
+            placeholder="Write a comment..."
+            className="flex-1 p-2 bg-secondary text-white rounded-l-md outline-none text-sm"
           />
-          {owner}
+          <button className="px-3 bg-accent text-white rounded-r-md hover:bg-opacity-80 text-sm">
+            Send
+          </button>
         </div>
       </div>
     </div>
   );
+  
 };
 
 export default WatchVideo;
