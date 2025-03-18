@@ -2,16 +2,53 @@
 
 import Image from "next/image";
 import { AlignJustify } from "lucide-react";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
 import WalletAvatar from "./walletavatar";
+import { profileContractAddress, profileContractAbi } from "@/lib/constants";
+
+// Define the expected return type of the getProfile function
+type ProfileData = {
+  username: string;
+  profilePicCID?: string | null;
+};
 
 const SideBarContext = createContext({ expanded: true });
 
 export default function SideBar({ children }: { children: React.ReactNode }) {
   const [expanded, setExpanded] = useState(false);
   const { address } = useAccount(); // Get connected wallet address
+
+  // Fetch profile data using `useReadContract`
+  const { data: profile } = useReadContract({
+    address: profileContractAddress as `0x${string}`,
+    abi: profileContractAbi,
+    functionName: "getProfile",
+    args: [address],
+  });
+
+  const [profileData, setProfileData] = useState<ProfileData>({
+    username: "",
+    profilePicCID: null,
+  });
+
+  // Update state when profile data is fetched
+  useEffect(() => {
+    if (profile) {
+      console.log("Fetched profile data:", profile);
+
+      const { username, profilePicCID } = profile as ProfileData;
+
+      // Ensure the CID is formatted correctly for IPFS gateway
+      const formattedCID = profilePicCID?.replace("ipfs://", "");
+
+      setProfileData({
+        username,
+        profilePicCID: formattedCID ? `https://ipfs.io/ipfs/${formattedCID}` : null,
+      });
+    }
+  }, [profile]);
 
   return (
     <aside
@@ -48,8 +85,20 @@ export default function SideBar({ children }: { children: React.ReactNode }) {
             {children}
             {address && (
               <SideBarItem
-                text="Profile"
-                icon={<WalletAvatar address={address} size={24} />}
+                text={profileData.username ? `@${profileData.username}` : "Profile"}
+                icon={
+                  profileData.profilePicCID ? (
+                    <Image
+                      src={profileData.profilePicCID}
+                      alt="Profile"
+                      width={24}
+                      height={24}
+                      className="rounded-full"
+                    />
+                  ) : (
+                    <WalletAvatar address={address} size={24} />
+                  )
+                }
                 active={false}
               />
             )}
@@ -73,7 +122,7 @@ export function SideBarItem({
   const router = useRouter();
 
   const handleClick = () => {
-    const formattedText = text.toLowerCase();
+    const formattedText = text.toLowerCase().replace("@", "");
     const path = formattedText === "home" ? "/home" : `/${formattedText}`;
     router.push(path);
   };
