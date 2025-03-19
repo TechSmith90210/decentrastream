@@ -1,64 +1,108 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Home,
-  Upload,
-  Settings,
-  // Flame
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Home, Upload, Settings, CircleUserRound } from "lucide-react";
+import { useAccount, useReadContract } from "wagmi";
+import { profileContractAddress, profileContractAbi } from "@/lib/constants";
+import Image from "next/image";
+
+type ProfileData = {
+  username: string;
+  profilePicCID?: string | null;
+};
 
 const navItems = [
-  { label: "Home", icon: Home },
-  { label: "Upload", icon: Upload },
-  // { label: "Trending", icon: Flame },
-  { label: "Settings", icon: Settings },
+  { label: "Home", path: "/home", icon: Home },
+  { label: "Upload", path: "/upload", icon: Upload },
+  { label: "Settings", path: "/settings", icon: Settings },
 ];
 
-const BottomNavbar: React.FC = () => {
+const BottomNav = () => {
+  const pathname = usePathname();
   const router = useRouter();
-  const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const { address } = useAccount();
 
+  // Profile state
+  const [profileData, setProfileData] = useState<ProfileData>({
+    username: "",
+    profilePicCID: null,
+  });
+
+  // Fetch profile data
+  const { data: profile } = useReadContract({
+    address: profileContractAddress as `0x${string}`,
+    abi: profileContractAbi,
+    functionName: "getProfile",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address, // Fetch only when address is available
+    },
+  });
+
+  // Update state when profile data is available
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setIsVisible(currentScrollY < lastScrollY);
-      setLastScrollY(currentScrollY);
-    };
+    if (profile) {
+      console.log("Fetched profile data:", profile);
+      const { username, profilePicCID } = profile as ProfileData;
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
+      // Ensure the CID is formatted correctly for IPFS
+      const formattedCID = profilePicCID?.replace("ipfs://", "");
+      setProfileData({
+        username,
+        profilePicCID: formattedCID ? `https://ipfs.io/ipfs/${formattedCID}` : null,
+      });
+    }
+  }, [profile]);
 
-  const handleNavigation = (label: string) => {
-    const formattedText = label.toLowerCase();
-    const path = formattedText === "home" ? "/home" : `/${formattedText}`;
+  // Handle navigation
+  const handleNavigation = (path: string) => {
     router.push(path);
   };
 
   return (
-    <nav
-      className={`fixed bottom-5 left-1/2 transform -translate-x-1/2 w-auto px-4 py-2 
-      flex justify-around items-center gap-4 rounded-full shadow-md backdrop-blur-md bg-secondary/80
-      transition-all duration-300 ${
-        isVisible
-          ? "opacity-100 scale-100"
-          : "opacity-0 scale-90 pointer-events-none"
-      }`}
-    >
-      {navItems.map(({ label, icon: Icon }) => (
+    <nav className="fixed bottom-0 left-0 w-full bg-background border-t border-mutedText shadow-lg">
+      <div className="max-w-lg mx-auto flex justify-around items-center h-16">
+        {navItems.map(({ label, path, icon: Icon }) => {
+          const isActive = pathname.startsWith(path);
+
+          return (
+            <button
+              key={path}
+              onClick={() => handleNavigation(path)}
+              className="flex flex-col items-center justify-center p-2"
+            >
+              <Icon className={`w-6 h-6 ${isActive ? "text-blue-500" : "text-mutedText"}`} />
+              <span className={`text-xs font-heading ${isActive ? "text-blue-500 font-semibold" : "text-mutedText"}`}>
+                {label}
+              </span>
+            </button>
+          );
+        })}
+
+        {/* Profile Button */}
         <button
-          key={label}
-          onClick={() => handleNavigation(label)}
-          className="p-2 rounded-full transition hover:bg-secondary/50"
+          onClick={() => handleNavigation(profileData.username ? `/profile/${profileData.username}` : "/profile")}
+          className="flex flex-col items-center justify-center p-2"
         >
-          <Icon className="w-6 h-6 text-foreground" />
+          {profileData.profilePicCID ? (
+            <Image
+              src={profileData.profilePicCID}
+              alt="Profile"
+              width={28}
+              height={28}
+              className={`rounded-full border-2 ${pathname.startsWith("/profile") ? "border-blue-500" : "border-mutedText"}`}
+            />
+          ) : (
+            <CircleUserRound className={`w-6 h-6 ${pathname.startsWith("/profile") ? "text-blue-500" : "text-mutedText"}`} />
+          )}
+          <span className={`text-xs font-heading ${pathname.startsWith("/profile") ? "text-blue-500 font-semibold" : "text-mutedText"}`}>
+            Profile
+          </span>
         </button>
-      ))}
+      </div>
     </nav>
   );
 };
 
-export default BottomNavbar;
+export default BottomNav;

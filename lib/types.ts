@@ -3,11 +3,6 @@ export interface VideoGridItemProps {
     title: string;
     duration: string;
     description:string;
-    channel: {
-      id: string;
-      name: string;
-      profileUrl: string;
-    };
     videoUrl: string;
     thumbnailurl: string;
     postedAt: string;

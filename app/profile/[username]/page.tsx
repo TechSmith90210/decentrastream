@@ -102,15 +102,11 @@ const ProfilePage: React.FC = () => {
           title: video.title || "Untitled Video",
           duration: String(video.timestamp) || "Unknown",
           description: video.description || "",
-          channel: {
-            id: String(video.id),
-            name: video.owner || "Unknown Uploader",
-            profileUrl: profileData.profilePicCID || "/avatar.jpg",
-          },
           videoUrl: `https://ipfs.io/ipfs/${video.videoCID.replace("ipfs://", "")}`,
           thumbnailurl: `https://ipfs.io/ipfs/${video.thumbnailCID.replace("ipfs://", "")}`,
           postedAt: "Recently",
           owner: video.owner,
+          ownerProfilePic : profileData.profilePicCID || "unknown",
           timestamp: video.timestamp,
           videoCID: `https://ipfs.io/ipfs/${video.videoCID.replace("ipfs://", "")}`,
         }));
@@ -158,8 +154,8 @@ const ProfilePage: React.FC = () => {
       ) : videos.length > 0 ? (
         <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-2 gap-4 pt-3">
           {videos
-  .filter((video) => video.owner.toLowerCase() === resolvedAddress?.toLowerCase())
-  .map((video) => <VideoGridItem key={video.id} {...video} />)}
+            .filter((video) => video.owner.toLowerCase() === resolvedAddress?.toLowerCase())
+            .map((video) => <VideoGridItem key={video.id} {...video} />)}
 
         </div>
       ) : (

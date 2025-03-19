@@ -28,11 +28,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <Navbar />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-background text-foreground md:pb-12"> {/*added padding for main content*/}
+        <main className="flex-1 overflow-y-auto bg-background text-foreground pb-14"> {/*added padding for main content*/}
           {children}
         </main>
         {/* Bottom Navbar (shown on small screens) */}
-      <div className="md:hidden bg-transparent">
+      <div className="md:hidden relative bg-transparent">
         <BottomNavbar />
       </div>
       </div>

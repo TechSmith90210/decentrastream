@@ -70,7 +70,7 @@ const HomePage: React.FC = () => {
             },
             videoUrl: formatIPFSUrl(cleanedVideoCID), // ✅ FIX: Convert to full IPFS URL
             thumbnailurl: formatIPFSUrl(cleanedThumbnailCID),
-            postedAt: "Recently",
+            postedAt: String(video.timestamp),
             owner: video.owner || "0x0",
             timestamp: video.timestamp,
             videoCID: video.videoCID,
