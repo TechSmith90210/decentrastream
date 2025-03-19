@@ -68,12 +68,12 @@ const HomePage: React.FC = () => {
               name: video.owner || "Unknown Uploader",
               profileUrl: "/profile.png",
             },
-            videoUrl: cleanedVideoCID, // Store just the CID (not full URL)
+            videoUrl: formatIPFSUrl(cleanedVideoCID), // ✅ FIX: Convert to full IPFS URL
             thumbnailurl: formatIPFSUrl(cleanedThumbnailCID),
             postedAt: "Recently",
             owner: video.owner || "0x0",
             timestamp: video.timestamp,
-            videoCID: cleanedVideoCID,
+            videoCID: video.videoCID,
           };
         }
       );

@@ -2,9 +2,9 @@ import React from "react";
 import {
   Home, Upload, Settings
 } from "lucide-react";
-import SideBar, { SideBarItem } from "../home/components/sidebar";
-import Navbar from "../components/navbar";
-import BottomNavbar from "../home/components/bottomNavBar";
+import SideBar, { SideBarItem } from "@/app/home/components/sidebar";
+import Navbar from "@/app/home/components/navbar";
+import BottomNavbar from "@/app/home/components/bottomNavBar";
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
