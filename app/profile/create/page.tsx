@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAccount, useWriteContract } from "wagmi";
 import { profileContractAddress, profileContractAbi } from "@/lib/constants";
 import WalletAvatar from "@/app/home/components/walletavatar";
@@ -9,6 +9,7 @@ import { Edit2, RefreshCcw } from "lucide-react";
 import Image from "next/image";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { useHasProfile } from "@/lib/utils";
 
 // Utility function to generate a random username
 const generateUsername = (): string => {
@@ -22,7 +23,7 @@ const generateUsername = (): string => {
 
 const CreateProfilePage = () => {
     const router = useRouter();
-    const { address } = useAccount();
+    const { address, isConnected } = useAccount();
     const { data: txData, writeContract } = useWriteContract();
 
     const [username, setUsername] = useState("");
@@ -30,7 +31,31 @@ const CreateProfilePage = () => {
     const [image, setImage] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [profilePicCID, setProfilePicCID] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading1, setIsLoading] = useState(false);
+  const pathname = usePathname();
+
+    
+      const { data: hasProfile, isLoading } = useHasProfile(address);
+      useEffect(() => {
+        console.log("isConnected:", isConnected);
+        console.log("isLoading:", isLoading);
+        console.log("hasProfile:", hasProfile);
+        console.log("pathname:", pathname);
+    
+        if (!isConnected) {
+          router.replace("/");
+          return;
+        }
+    
+        if (isLoading) return; // ✅ Wait until profile check is done
+    
+        if (!hasProfile) {
+          router.replace("/profile/create");
+        } else if (hasProfile) {
+          router.replace("/home");
+        }
+      }, [isConnected, isLoading, hasProfile, pathname, router]);
+
 
     const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -105,6 +130,8 @@ const CreateProfilePage = () => {
         }
     }, [txData, router]);
 
+
+
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground px-4">
             <div className="bg-secondary p-6 rounded-lg shadow-md w-full max-w-md flex flex-col items-center">
@@ -158,9 +185,9 @@ const CreateProfilePage = () => {
                 <button
                     className="font-body w-full bg-accent hover:bg-accent/60 text-white font-semibold py-2 text-sm rounded-lg transition-all"
                     onClick={handleCreateProfile}
-                    disabled={isLoading}
+                    disabled={isLoading1}
                 >
-                    {isLoading ? "Creating..." : "Create Profile"}
+                    {isLoading1 ? "Creating..." : "Create Profile"}
                 </button>
             </div>
         </div>

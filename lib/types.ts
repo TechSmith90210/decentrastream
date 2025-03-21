@@ -22,3 +22,13 @@ export interface VideoDataFromContract {
     owner: `0x${string}`; // Corresponds to the 'owner' field in Solidity (address in hex format)
     timestamp: number; // Corresponds to the 'timestamp' field in Solidity (Unix timestamp)
   }
+
+export interface CommentDataFromContract {
+  id: number;
+  author: string;
+  commentCID: string;
+  videoId: number;
+  timestamp: number;
+  username: string;
+  profilePicCID: string;
+}
