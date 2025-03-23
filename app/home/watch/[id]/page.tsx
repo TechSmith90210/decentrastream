@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import WalletAvatar from "../../components/walletavatar";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
-import { profileContractAddress, profileContractAbi, commentContractAddress, commentContractAbi } from "@/lib/constants";
+import {
+  profileContractAddress,
+  profileContractAbi,
+  commentContractAddress,
+  commentContractAbi,
+} from "@/lib/constants";
 import Image from "next/image";
 import Link from "next/link";
 import { uploadTextToPinata } from "@/lib/pinata";
@@ -12,9 +17,12 @@ import { useParams } from "next/navigation";
 import { CommentDataFromContract } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import axios from "axios"; // Import axios for fetching data from IPFS
-
+import { useRouter } from "next/navigation";
+import { HeartHandshake } from "lucide-react";
+import LoadingScreen from "@/app/components/loadingScreen";
 // Function to generate correct IPFS gateway URL
-const getIPFSUrl = (cid: string) => cid ? `https://ipfs.io/ipfs/${cid.replace("ipfs://", "")}` : undefined;
+const getIPFSUrl = (cid: string) =>
+  cid ? `https://ipfs.io/ipfs/${cid.replace("ipfs://", "")}` : undefined;
 
 const WatchVideo: React.FC = () => {
   interface VideoData {
@@ -33,14 +41,26 @@ const WatchVideo: React.FC = () => {
 
   const [videoData, setVideoData] = useState<VideoData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [profileData, setProfileData] = useState<ProfileData>({ username: "", profilePicCID: null });
-  const [myProfileData, setMyProfileData] = useState<ProfileData>({ username: "", profilePicCID: null }); // Add myProfileData state
+  const [profileData, setProfileData] = useState<ProfileData>({
+    username: "",
+    profilePicCID: null,
+  });
+  const [myProfileData, setMyProfileData] = useState<ProfileData>({
+    username: "",
+    profilePicCID: null,
+  }); // Add myProfileData state
   const [comments, setComments] = useState<CommentDataFromContract[]>([]);
   const [newComment, setNewComment] = useState<string>(""); // Store user input
   const { address } = useAccount();
+  const router = useRouter();
 
   const [commentsWithUsernames, setCommentsWithUsernames] = useState<
-    { comment: CommentDataFromContract; username: string; content: string; profilePicCID: string }[]
+    {
+      comment: CommentDataFromContract;
+      username: string;
+      content: string;
+      profilePicCID: string;
+    }[]
   >([]);
 
   const searchParams = useSearchParams();
@@ -64,7 +84,14 @@ const WatchVideo: React.FC = () => {
       const thumbnailurl = searchParams.get("thumbnailurl");
       const owner = searchParams.get("owner");
 
-      if (videoUrl && title && description && thumbnailurl && owner && memoizedId) {
+      if (
+        videoUrl &&
+        title &&
+        description &&
+        thumbnailurl &&
+        owner &&
+        memoizedId
+      ) {
         const decodedVideoData = {
           videoUrl: decodeURIComponent(videoUrl),
           title: decodeURIComponent(title),
@@ -136,7 +163,9 @@ const WatchVideo: React.FC = () => {
     }
 
     try {
-      const ipfsHash = await uploadTextToPinata(JSON.stringify({ text: newComment }));
+      const ipfsHash = await uploadTextToPinata(
+        JSON.stringify({ text: newComment })
+      );
       if (!ipfsHash) {
         toast.error("Failed to upload comment to IPFS.");
         return;
@@ -178,18 +207,17 @@ const WatchVideo: React.FC = () => {
     return fetchedComments.map((comment) => {
       const ipfsUrl = getIPFSUrl(comment.commentCID);
       if (!ipfsUrl) return { ...comment, text: "Invalid CID" };
-  
+
       return axios
         .get(ipfsUrl)
         .then((response) => ({ ...comment, text: response.data.text || "" }))
         .catch(() => ({ ...comment, text: "Failed to load comment" }));
     });
   }, [fetchedComments]);
-  
+
   useEffect(() => {
     Promise.all(commentsWithText).then(setComments);
   }, [commentsWithText]);
-  
 
   useEffect(() => {
     const fetchCommentContent = async () => {
@@ -211,7 +239,10 @@ const WatchVideo: React.FC = () => {
               let commentText = data.text || "";
 
               // If `commentText` is still a stringified JSON, parse again
-              if (typeof commentText === "string" && commentText.startsWith("{")) {
+              if (
+                typeof commentText === "string" &&
+                commentText.startsWith("{")
+              ) {
                 try {
                   const parsedContent = JSON.parse(commentText);
                   commentText = parsedContent.text || "";
@@ -219,7 +250,6 @@ const WatchVideo: React.FC = () => {
                   console.error("Error parsing nested JSON:", error);
                 }
               }
-
 
               return {
                 comment: {
@@ -260,7 +290,6 @@ const WatchVideo: React.FC = () => {
     }
   }, [comments]);
 
-
   useEffect(() => {
     console.log("Fetched Comments from contract:", fetchedComments);
     if (fetchedComments) {
@@ -269,86 +298,169 @@ const WatchVideo: React.FC = () => {
   }, [fetchedComments]);
 
   if (loading) {
-    return <p className="text-blue-500">Loading...</p>;
+    return <LoadingScreen/>;
   }
 
   if (!videoData) {
     return <p className="text-red-500">Error: Video data is missing.</p>;
   }
 
+  const convertTimestamp = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "UTC",
+    });
+  };
+
   return (
     <div className="flex flex-col md:flex-row h-screen bg-background text-foreground p-4">
       {/* Left Section - Video & Details */}
-      <div className="w-full md:w-[70%] flex flex-col space-y-2">
-        <video controls autoPlay className="w-full h-auto max-h-[70vh] rounded-lg shadow-lg">
-          {videoData.videoUrl && <source src={videoData.videoUrl} type="video/mp4" />}
-          Your browser does not support the video tag.
-        </video>
+      <div className="w-full md:w-[70%] flex flex-col space-y-2 md:pr-4">
+        {/* Video Player */}
+        <div className="w-full aspect-video rounded-lg shadow-lg bg-black">
+          <video controls autoPlay className="w-full h-full rounded-lg">
+            {videoData.videoUrl && (
+              <source src={videoData.videoUrl} type="video/mp4" />
+            )}
+            Your browser does not support the video tag.
+          </video>
+        </div>
 
-        <h1 className="text-2xl font-bold">{videoData.title || "Untitled Video"}</h1>
-        <p className="text-sm text-mutedText">{videoData.description || "No description available"}</p>
+        {/* Video Title & Description */}
+        <h1 className="text-2xl font-bold">
+          {videoData.title || "Untitled Video"}
+        </h1>
+        <p className="text-sm text-mutedText">
+          {videoData.description || "No description available"}
+        </p>
 
         {/* Owner Section */}
-        <Link href={`/profile/${profileData.username}`} className="flex items-center gap-4 pt-3 cursor-pointer hover:opacity-80 transition-opacity">
-          <div className="w-8 h-8 rounded-full overflow-hidden">
-            {profileData.profilePicCID ? (
-              <Image
-                src={profileData.profilePicCID}
-                alt="Profile"
-                width={64}
-                height={64}
-                className="w-full h-full rounded-full object-cover"
-                quality={100} // Ensures high quality
-                priority // Loads the image ASAP
-              />
-            ) : (
-              <WalletAvatar address={videoData.owner} size={30} />
-            )}
-          </div>
-          <h6 className="text-sm font-medium">@{profileData.username || videoData.owner}</h6>
-        </Link>
+        <div className="flex items-center justify-between pt-3 pb-5">
+          <Link
+            href={`/profile/${profileData.username}`}
+            className="flex items-center gap-4 cursor-pointer group" // Added `group` for parent hover
+          >
+            {/* Profile Picture */}
+            <div className="w-8 h-8 rounded-full overflow-hidden transition-transform duration-300 ease-in-out group-hover:scale-110">
+              {profileData.profilePicCID ? (
+                <Image
+                  src={profileData.profilePicCID}
+                  alt="Profile"
+                  width={64}
+                  height={64}
+                  className="w-full h-full rounded-full object-cover"
+                  quality={100}
+                  priority
+                />
+              ) : (
+                <WalletAvatar address={videoData.owner} size={30} />
+              )}
+            </div>
+
+            {/* Username and View Profile */}
+            <div className="flex flex-col space-y-1">
+              <h6 className="text-sm font-medium transition-colors duration-300 ease-in-out group-hover:text-accent">
+                @{profileData.username || videoData.owner}
+              </h6>
+              <p className="text-xs text-mutedText font-body transition-colors duration-300 ease-in-out group-hover:text-accent">
+                View Profile
+              </p>
+            </div>
+          </Link>
+
+          {/* Tip Button */}
+          <button
+            onClick={() => {
+              console.log("Tip sent to:", profileData.username || videoData.owner);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-white text-lg rounded-lg hover:bg-accent/90 transition-colors hover:shadow-md active:scale-95"
+          >
+            <HeartHandshake color="#E0E0E0" />
+            <h6 className="text-foreground text-sm font-heading">Give Support</h6>
+          </button>
+        </div>
       </div>
 
       {/* Right Section - Comments */}
-      <div className="w-full md:w-[30%] bg-secondary p-4 rounded-lg overflow-y-auto max-h-[70vh]">
-        <h2 className="text-xl font-bold mb-4 text-foreground">Comments</h2>
+      <div className="w-full md:w-[30%] bg-secondary p-4 rounded-lg flex flex-col max-h-[70vh] md:max-h-[80vh]">
+        {/* Comments Header */}
+        <h2 className="text-lg font-heading font-medium mb-4 text-foreground">
+          Comments
+        </h2>
 
-        {commentsWithUsernames.length > 0 ? (
-          commentsWithUsernames.map(({ comment, username, content, profilePicCID }) => (
-            <div key={comment.id} className="mb-4 p-4 bg-background rounded-lg shadow-sm">
-              <div className="flex items-center gap-2">
-                {profilePicCID ? (
-                  <Image
-                    src={profilePicCID || ""}
-                    alt="Profile"
-                    width={32}
-                    height={32}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <WalletAvatar address={comment.author} size={30} />
-                )}
-                <h4 className="text-sm font-semibold text-foreground">@{username}</h4>
-              </div>
-              <p className="text-sm text-mutedText mt-1">{content || "Loading comment..."}</p>
-            </div>
-          ))
-        ) : (
-          <p className="text-sm text-mutedText">No comments yet. Be the first to comment!</p>
-        )}
+        {/* Comments List (Scrollable) */}
+        <div className="flex-1 overflow-y-auto px-2">
+          {commentsWithUsernames.length > 0 ? (
+            commentsWithUsernames.map(
+              ({ comment, username, content, profilePicCID }) => (
+                <div
+                  key={comment.id}
+                  className="mb-4 p-4 bg-background rounded-lg shadow-sm"
+                >
+                  {/* Clickable Profile Section */}
+                  <div
+                    onClick={() => router.replace(`/profile/${username}`)}
+                    className="flex items-center gap-2 group cursor-pointer" // Added `group` for parent hover
+                  >
+                    {/* Profile Picture */}
+                    <div className="transition-transform duration-200 ease-in-out group-hover:scale-105">
+                      {profilePicCID ? (
+                        <Image
+                          src={profilePicCID || ""}
+                          alt="Profile"
+                          width={30}
+                          height={30}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <WalletAvatar address={comment.author} size={30} />
+                      )}
+                    </div>
 
-        {/* Add Comment Input */}
+                    {/* Username */}
+                    <span className="text-sm font-heading text-foreground transition-colors duration-200 ease-in-out group-hover:text-foreground/70">
+                      @{username}
+                    </span>
+                  </div>
+
+                  {/* Comment Content */}
+                  <p className="text-sm font-body text-foreground mt-1">
+                    {content || "Loading comment..."}
+                  </p>
+
+                  {/* Timestamp */}
+                  <p className="text-xs font-body text-mutedText mt-1">
+                    ({convertTimestamp(comment.timestamp)})
+                  </p>
+                </div>
+              )
+            )
+          ) : (
+            <p className="text-sm text-mutedText font-body">
+              No comments yet. Be the first to comment!
+            </p>
+          )}
+        </div>
+
+        {/* Add Comment Input (Fixed at the Bottom) */}
         <div className="mt-4">
           <textarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Write a comment..."
-            className="w-full p-2 bg-background text-foreground border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-            rows={3}
+            className="text-sm font-body w-full p-2 bg-background text-foreground border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+            rows={2}
           />
           <button
             onClick={addComment}
-            className="mt-2 bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent/90 transition-colors"
+            className="mt-2 text-sm font-heading bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent/90 transition-colors w-full"
           >
             Add Comment
           </button>

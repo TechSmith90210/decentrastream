@@ -143,7 +143,7 @@ const ProfilePage: React.FC = () => {
 
       {/* Show "Edit Profile" button if it's the logged-in user's profile */}
       {isMyProfile && (
-        <button className="bg-primary text-white py-2 px-4 rounded-lg mb-4">
+        <button className="bg-secondary hover:bg-accent/80 transition-colors duration-500 text-foreground font-body text-sm py-2 px-4 rounded-lg mb-4">
           Edit Profile
         </button>
       )}

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { AlignJustify } from "lucide-react";
 import { createContext, useContext, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useAccount, useReadContract } from "wagmi";
 import WalletAvatar from "./walletavatar";
 import { profileContractAddress, profileContractAbi } from "@/lib/constants";
@@ -19,6 +19,17 @@ const SideBarContext = createContext({ expanded: true });
 export default function SideBar({ children }: { children: React.ReactNode }) {
   const [expanded, setExpanded] = useState(false);
   const { address } = useAccount(); // Get connected wallet address
+  const router = useRouter();
+const params = useParams(); // Get URL params
+  const pathname = usePathname(); // Get current pathname
+  // Handle profile click
+  const handleProfileClick = () => {
+    if (profileData.username) {
+      router.replace(`/profile/${profileData.username}`);
+    }
+  };
+
+
 
   // Fetch profile data using `useReadContract`
   const { data: profile } = useReadContract({
@@ -49,6 +60,13 @@ export default function SideBar({ children }: { children: React.ReactNode }) {
       });
     }
   }, [profile]);
+
+  // Get the username from the URL
+  const currentProfileUsername = params.username as string;
+
+  // Check if the current user's profile is being viewed
+  const isProfileActive =
+    pathname.startsWith("/profile") && profileData.username === currentProfileUsername;
 
   return (
     <aside
@@ -84,7 +102,7 @@ export default function SideBar({ children }: { children: React.ReactNode }) {
           <ul className="flex-1 px-3">
             {children}
             {address && (
-              <SideBarItem
+              <SideBarItem onClick={handleProfileClick}
                 text={profileData.username ? `@${profileData.username}` : "Profile"}
                 icon={
                   profileData.profilePicCID ? (
@@ -99,7 +117,7 @@ export default function SideBar({ children }: { children: React.ReactNode }) {
                     <WalletAvatar address={address} size={24} />
                   )
                 }
-                active={false}
+                active={isProfileActive}
               />
             )}
           </ul>
@@ -113,18 +131,25 @@ export function SideBarItem({
   text,
   icon,
   active,
+  onClick, // Add onClick prop
 }: {
   text: string;
   icon: React.ReactNode;
   active: boolean;
+  onClick?: () => void; // Optional onClick handler
 }) {
   const { expanded } = useContext(SideBarContext);
   const router = useRouter();
 
   const handleClick = () => {
-    const formattedText = text.toLowerCase().replace("@", "");
-    const path = formattedText === "home" ? "/home" : `/${formattedText}`;
-    router.push(path);
+    if (onClick) {
+      onClick(); // Call the provided onClick handler
+    } else {
+      // Default behavior: Navigate to the corresponding page
+      const formattedText = text.toLowerCase().replace("@", "");
+      const path = formattedText === "home" ? "/home" : `/${formattedText}`;
+      router.push(path);
+    }
   };
 
   return (

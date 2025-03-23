@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAccount } from "wagmi";
 import { useHasProfile } from "@/lib/utils";
+import LoadingScreen from "./components/loadingScreen";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (isLoading) return; // ✅ Wait until profile check is done
+    if (isLoading) return  ; // ✅ Wait until profile check is done
 
     if (!hasProfile && pathname !== "/profile/create") {
       router.replace("/profile/create");
@@ -34,11 +35,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   // ✅ Show "Checking Profile" only when loading
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground px-4">
-        <p className="text-gray-400 text-center mt-4">Checking profile...</p>
-      </div>
-    );
+    return <LoadingScreen/>
   }
 
   return <>{children}</>;

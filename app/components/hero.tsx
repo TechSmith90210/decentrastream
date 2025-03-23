@@ -18,7 +18,7 @@ export default function Hero() {
 
       {/* Subtitle */}
       <motion.h4
-        className="text-gray-400 text-base sm:text-lg md:text-xl font-body relative z-10"
+        className="text-gray-400 text-sm sm:text-lg md:text-xl font-body relative z-10"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
