@@ -7,6 +7,8 @@ import axios from "axios";
 import { useWriteContract, useTransaction } from "wagmi";
 import { videoContractAddress, videoContractAbi } from "../../lib/constants";
 import { Config } from "tailwindcss";
+import { BackendResponse } from "@/lib/types";
+import { toast } from "react-hot-toast";
 
 const UploadPage: React.FC = () => {
   const [thumbnail, setThumbnail] = useState<File | null>(null);
@@ -21,12 +23,12 @@ const UploadPage: React.FC = () => {
   const [videoDetails, setVideoDetails] = useState<{ name: string; size: number; thumbnail: string | null }>({ name: "", size: 0, thumbnail: null });
 
   // TODO: Fix any type error in upload page.tsx
-  const { data: txData, writeContract } = useWriteContract() as { data: { hash: `0x${string}` } | undefined, writeContract: Config["writeContract"] };
+  const { writeContract } = useWriteContract() as { data: { hash: `0x${string}` } | undefined, writeContract: Config["writeContract"] };
   const { isLoading: isTxLoading, isSuccess } = useTransaction({
     hash: (txHash as `0x${string}`) ?? undefined,
   });
-  
-  
+
+
 
   useEffect(() => {
     if (isSuccess) {
@@ -106,41 +108,73 @@ const UploadPage: React.FC = () => {
     }
   };
 
-  // Handle form submission
   const handleSubmit = async () => {
+    // Check if all required fields are filled
     if (!title || !description || !category || !video || !thumbnail) {
-      alert("Please fill in all fields and upload both files.");
+      alert("Please fill in all fields and upload both video and thumbnail.");
       return;
     }
 
     setLoading(true);
 
     try {
-      // Upload files to IPFS
+      // Step 1: Upload the video to the backend API
+      const backendFormData = new FormData();
+      backendFormData.append('video', video);
+
+      const backendUrl = `https://decentrabackend-production.up.railway.app/upload`;
+
+      // Call backend API to upload the video
+      const backendResponse = await fetch(backendUrl, {
+        method: 'POST',
+        body: backendFormData,
+      });
+
+      if (!backendResponse.ok) {
+        const errorData = await backendResponse.json();
+        throw new Error(errorData.error || 'Failed to upload video to the backend');
+      }
+
+      const backendData: BackendResponse = await backendResponse.json(); // Use the defined type here
+      console.log('Backend video upload successful:', backendData);
+
+      // Step 2: Upload the thumbnail to IPFS
       const thumbnailCID = await uploadToPinata(thumbnail);
-      const videoCID = await uploadToPinata(video);
+      console.log("Thumbnail uploaded to IPFS:", thumbnailCID);
 
-      console.log("Uploaded to IPFS:", { thumbnailCID, videoCID });
+      // Step 3: Extract CIDs dynamically from backend response
+      const videoCIDs: string[] = Object.values(backendData.files).map((file) => file.videoCID);
+      const originalVideoCID = videoCIDs[0];  // Assuming the first video is the "original" (360p)
 
-      // Call Smart Contract Function
-      await writeContract({
+      console.log("Video CIDs from backend:", videoCIDs);
+      console.log("Original Video CID:", originalVideoCID);
+
+      // Step 4: Call Smart Contract to store video info
+      const txData = await writeContract({
         address: videoContractAddress as `0x${string}`,
         abi: videoContractAbi,
         functionName: "uploadVideo",
-        args: [title, description, videoCID, thumbnailCID, category, tags],
+        args: [title, description, originalVideoCID, videoCIDs, thumbnailCID, category, tags],
       });
 
+      // Step 5: If the transaction is successful, log the transaction hash
       if (txData?.hash) {
         console.log("Transaction Hash:", txData.hash);
-        setTxHash(txData.hash); // Store transaction hash for tracking
+        setTxHash(txData.hash);
       }
+
+      toast.success("Video uploaded successfully!");
+
     } catch (error) {
+      // Handle any errors that occur during the upload process
       console.error("Upload error:", error);
-      alert("Upload failed. Check the console for details.");
+      toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
+      // Set loading state to false after completing all steps
       setLoading(false);
     }
   };
+
 
   return (
     <div className="p-6 min-h-[100dvh] flex flex-col gap-6 bg-secondary text-foreground w-full max-w-2xl mx-auto md:pb-0 pb-20">

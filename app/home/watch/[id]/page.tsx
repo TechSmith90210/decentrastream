@@ -12,34 +12,58 @@ import {
 } from "@/lib/constants";
 import Image from "next/image";
 import Link from "next/link";
-import { uploadTextToPinata } from "@/lib/pinata";
+import { fetchFilenameFromPinata, uploadTextToPinata } from "@/lib/pinata";
 import { useParams } from "next/navigation";
 import { CommentDataFromContract } from "@/lib/types";
 import { toast } from "react-hot-toast";
-import axios from "axios"; // Import axios for fetching data from IPFS
+import axios from "axios";
 import { useRouter } from "next/navigation";
-import { HeartHandshake } from "lucide-react";
 import LoadingScreen from "@/app/components/loadingScreen";
-// Function to generate correct IPFS gateway URL
-const getIPFSUrl = (cid: string) =>
-  cid ? `https://ipfs.io/ipfs/${cid.replace("ipfs://", "")}` : undefined;
+import TipButton from "../../components/tipButton";
+
+// Improved IPFS URL handling with fallback gateways
+const getIPFSUrl = (cid: string) => {
+  if (!cid) return undefined;
+  const cleanCID = cid.replace("ipfs://", "");
+  const gateways = [
+    `https://ipfs.io/ipfs/${cleanCID}`,
+    `https://gateway.pinata.cloud/ipfs/${cleanCID}`,
+    `https://cloudflare-ipfs.com/ipfs/${cleanCID}`,
+  ];
+  return gateways[0]; // Can implement fallback logic if needed
+};
+
+interface ProfileData {
+  username: string;
+  profilePicCID: string | null;
+}
+
+const extractCID = (url: string) => {
+  if (!url) return "";
+
+  const decodedUrl = decodeURIComponent(url);
+  console.log("Extracting CID from:", decodedUrl); // Debugging log
+
+  const cidMatch = decodedUrl.match(/ipfs\/([a-zA-Z0-9]+)/);
+  return cidMatch ? cidMatch[1] : url;
+};
+
+interface VideoData {
+  id: string;
+  videoUrl: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  owner: string;
+  cids: string[];
+  resolutions: { label: string; cid: string }[];
+}
 
 const WatchVideo: React.FC = () => {
-  interface VideoData {
-    id: string;
-    videoUrl: string;
-    title: string;
-    description: string;
-    thumbnailUrl: string;
-    owner: string;
-  }
-
-  interface ProfileData {
-    username: string;
-    profilePicCID: string | null;
-  }
-
   const [videoData, setVideoData] = useState<VideoData | null>(null);
+  const [selectedResolution, setSelectedResolution] = useState(
+    videoData?.resolutions[0]?.cid || ""
+  );
   const [loading, setLoading] = useState<boolean>(true);
   const [profileData, setProfileData] = useState<ProfileData>({
     username: "",
@@ -48,11 +72,13 @@ const WatchVideo: React.FC = () => {
   const [myProfileData, setMyProfileData] = useState<ProfileData>({
     username: "",
     profilePicCID: null,
-  }); // Add myProfileData state
+  });
   const [comments, setComments] = useState<CommentDataFromContract[]>([]);
-  const [newComment, setNewComment] = useState<string>(""); // Store user input
+  const [newComment, setNewComment] = useState<string>("");
   const { address } = useAccount();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { id } = useParams();
 
   const [commentsWithUsernames, setCommentsWithUsernames] = useState<
     {
@@ -63,53 +89,100 @@ const WatchVideo: React.FC = () => {
     }[]
   >([]);
 
-  const searchParams = useSearchParams();
-  const { id } = useParams();
+  // Memoize the ID to prevent unnecessary re-renders
+  const memoizedId = useMemo(() => (Array.isArray(id) ? id[0] : id), [id]);
 
-  // Fetch comments from smart contract
+  // Fetch comments from contract
   const { data: fetchedComments = [] } = useReadContract({
     address: commentContractAddress as `0x${string}`,
     abi: commentContractAbi,
     functionName: "getVideoComments",
-    args: [id], // Pass the video ID
+    args: [memoizedId],
   }) as { data?: CommentDataFromContract[] };
 
-  const memoizedId = useMemo(() => (Array.isArray(id) ? id[0] : id), [id]);
-
+  // Fetch video data from URL params
   useEffect(() => {
-    if (searchParams) {
-      const videoUrl = searchParams.get("videoUrl");
-      const title = searchParams.get("title");
-      const description = searchParams.get("description");
-      const thumbnailurl = searchParams.get("thumbnailurl");
-      const owner = searchParams.get("owner");
+    const fetchData = async () => {
+      if (!searchParams) return;
 
-      if (
-        videoUrl &&
-        title &&
-        description &&
-        thumbnailurl &&
-        owner &&
-        memoizedId
-      ) {
-        const decodedVideoData = {
+      try {
+        const videoUrl = searchParams.get("videoUrl");
+        const title = searchParams.get("title");
+        const description = searchParams.get("description");
+        const thumbnailurl = searchParams.get("thumbnailurl");
+        const owner = searchParams.get("owner");
+        const cidsParam = searchParams.get("cids");
+
+        if (
+          !videoUrl ||
+          !title ||
+          !description ||
+          !thumbnailurl ||
+          !owner ||
+          !memoizedId
+        ) {
+          throw new Error("Missing required video parameters");
+        }
+
+        const cids = cidsParam ? JSON.parse(decodeURIComponent(cidsParam)) : [];
+        console.log(
+          cids.length > 0 ? "Video sources found" : "No video sources found"
+        );
+        const videoSources = cids.length > 0 ? cids : [videoUrl];
+        const resolutions = ["original", ...cids];
+
+        // Create filename map for resolutions
+        const filenameMap = await Promise.all(
+          cids.map(async (cid: string) => {
+            const filename = await fetchFilenameFromPinata(cid);
+            return { cid, filename };
+          })
+        ).then((results) =>
+          results.reduce((acc, { cid, filename }) => {
+            if (filename) acc[cid] = filename;
+            return acc;
+          }, {} as Record<string, string>)
+        );
+
+        const extractResolutionFromFilename = (filename: string) => {
+          // Match patterns like "_360p", "360p_", "360p.mp4", etc.
+          const resolutionMatch = filename.match(/(\d{3,4}p)/i);
+          return resolutionMatch ? resolutionMatch[0] : filename;
+        };
+        interface VideoResolution {
+          label: string;
+          cid: string;
+        }
+        
+        const mappedResolutions: VideoResolution[] = cids.map((resolution: string) => ({
+          label: extractResolutionFromFilename(filenameMap[resolution] || resolution),
+          cid: extractCID(resolution),
+        }));
+
+        setVideoData({
           videoUrl: decodeURIComponent(videoUrl),
           title: decodeURIComponent(title),
           description: decodeURIComponent(description),
           thumbnailUrl: decodeURIComponent(thumbnailurl),
           owner: decodeURIComponent(owner),
           id: decodeURIComponent(memoizedId),
-        };
-
-        console.log("Fetched Video Data:", decodedVideoData);
-
-        setVideoData(decodedVideoData);
+          cids: videoSources,
+          resolutions: mappedResolutions,
+        });
+        console.log(videoSources, mappedResolutions); // Debugging log
+        setSelectedResolution(resolutions[0]);
+      } catch (error) {
+        console.error("Error fetching video data:", error);
+        toast.error("Failed to load video data");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }
+    };
+
+    fetchData();
   }, [searchParams, memoizedId]);
 
-  // Fetch owner profile using `useReadContract`
+  // Fetch owner profile
   const { data: profile } = useReadContract({
     address: profileContractAddress as `0x${string}`,
     abi: profileContractAbi,
@@ -119,7 +192,6 @@ const WatchVideo: React.FC = () => {
 
   useEffect(() => {
     if (profile) {
-      console.log("Fetched profile data:", profile);
       const { username, profilePicCID } = profile as ProfileData;
       setProfileData({
         username,
@@ -128,17 +200,16 @@ const WatchVideo: React.FC = () => {
     }
   }, [profile]);
 
-  // Fetch my profile data using `useReadContract`
+  // Fetch current user profile
   const { data: myProfile } = useReadContract({
     address: profileContractAddress as `0x${string}`,
     abi: profileContractAbi,
     functionName: "getProfile",
-    args: [address], // Fetch profile data for the logged-in user
+    args: [address],
   });
 
   useEffect(() => {
     if (myProfile) {
-      console.log("Fetched my profile data:", myProfile);
       const { username, profilePicCID } = myProfile as ProfileData;
       setMyProfileData({
         username,
@@ -147,18 +218,81 @@ const WatchVideo: React.FC = () => {
     }
   }, [myProfile]);
 
-  // Wagmi hook to call the smart contract function
-  const { writeContractAsync } = useWriteContract();
+  // Process comments with text content
+  useEffect(() => {
+    const processComments = async () => {
+      if (!fetchedComments || fetchedComments.length === 0) return;
 
-  // Function to add a comment
+      try {
+        const processedComments = await Promise.all(
+          fetchedComments.map(async (comment) => {
+            try {
+              const ipfsUrl = getIPFSUrl(comment.commentCID);
+              if (!ipfsUrl) return null;
+
+              const response = await axios.get(ipfsUrl);
+              let content = response.data?.text || "";
+
+              // Handle nested JSON content
+              if (typeof content === "string" && content.startsWith("{")) {
+                try {
+                  const parsed = JSON.parse(content);
+                  content = parsed.text || "";
+                } catch (e) {
+                  console.error("Error parsing nested comment JSON:", e);
+                }
+              }
+
+              return {
+                comment: {
+                  ...comment,
+                  id: Number(comment.id),
+                  videoId: Number(comment.videoId),
+                  timestamp: Number(comment.timestamp),
+                },
+                username: comment.username || "Anonymous",
+                content,
+                profilePicCID: comment.profilePicCID || "",
+              };
+            } catch (error) {
+              console.error("Error processing comment:", error);
+              return null;
+            }
+          })
+        );
+
+        setCommentsWithUsernames(
+          processedComments.filter(Boolean) as {
+            comment: CommentDataFromContract;
+            username: string;
+            content: string;
+            profilePicCID: string;
+          }[]
+        );
+      } catch (error) {
+        console.error("Error processing comments:", error);
+      }
+    };
+
+    processComments();
+  }, [fetchedComments]);
+
+  // Add comment function
+  const { writeContractAsync } = useWriteContract();
   const addComment = async () => {
     if (!newComment.trim()) {
-      toast.error("Comment text cannot be empty");
+      toast.error("Comment text cannot be empty", {
+        style: {
+          borderRadius: "10px",
+          background: "#1b1b1b",
+          color: "#fff",
+        },
+      });
       return;
     }
 
-    if (!videoData?.id) {
-      toast.error("Video ID is missing.");
+    if (!videoData?.id || !address) {
+      toast.error("Missing required data");
       return;
     }
 
@@ -167,147 +301,44 @@ const WatchVideo: React.FC = () => {
         JSON.stringify({ text: newComment })
       );
       if (!ipfsHash) {
-        toast.error("Failed to upload comment to IPFS.");
-        return;
+        throw new Error("IPFS upload failed");
       }
 
-      // Use myProfileData for the username and profilePicCID
-      const username = myProfileData.username || "Anonymous";
-      const profilePicCID = myProfileData.profilePicCID || "";
-
-      // Call the updated addComment function with username and profilePicCID
       await writeContractAsync({
         address: commentContractAddress as `0x${string}`,
         abi: commentContractAbi,
         functionName: "addComment",
-        args: [videoData.id, ipfsHash, username, profilePicCID], // Include username and profilePicCID
+        args: [
+          videoData.id,
+          ipfsHash,
+          myProfileData.username || "Anonymous",
+          myProfileData.profilePicCID || "",
+        ],
       });
 
       toast.success("Comment added successfully!");
       setNewComment("");
 
+      // Optimistically update comments
       const newCommentData: CommentDataFromContract = {
         id: comments.length + 1,
-        author: address || "You",
+        author: address,
         commentCID: ipfsHash,
-        videoId: Number(id),
-        timestamp: Math.floor(Date.now() / 1000), // Current timestamp in seconds
-        username: username, // Include username
-        profilePicCID: profilePicCID, // Include profilePicCID
+        videoId: Number(memoizedId),
+        timestamp: Math.floor(Date.now() / 1000),
+        username: myProfileData.username || "Anonymous",
+        profilePicCID: myProfileData.profilePicCID || "",
       };
 
-      setComments((prevComments) => [...prevComments, newCommentData]);
+      setComments((prev) => [...prev, newCommentData]);
     } catch (error) {
       console.error("Error adding comment:", error);
-      toast.error("Failed to add comment.");
+      toast.error("Failed to add comment");
     }
   };
 
-  const commentsWithText = useMemo(() => {
-    return fetchedComments.map((comment) => {
-      const ipfsUrl = getIPFSUrl(comment.commentCID);
-      if (!ipfsUrl) return { ...comment, text: "Invalid CID" };
-
-      return axios
-        .get(ipfsUrl)
-        .then((response) => ({ ...comment, text: response.data.text || "" }))
-        .catch(() => ({ ...comment, text: "Failed to load comment" }));
-    });
-  }, [fetchedComments]);
-
-  useEffect(() => {
-    Promise.all(commentsWithText).then(setComments);
-  }, [commentsWithText]);
-
-  useEffect(() => {
-    const fetchCommentContent = async () => {
-      try {
-        if (!comments || comments.length === 0) return;
-
-        const commentsWithContent = await Promise.all(
-          comments.map(async (comment) => {
-            if (!comment || !comment.commentCID) return null; // Ensure commentCID is valid
-
-            const ipfsUrl = getIPFSUrl(comment.commentCID);
-            if (!ipfsUrl) return null;
-
-            try {
-              const response = await fetch(ipfsUrl);
-              const data = await response.json(); // Parse the JSON response
-
-              // Ensure content is properly parsed if it's a stringified JSON
-              let commentText = data.text || "";
-
-              // If `commentText` is still a stringified JSON, parse again
-              if (
-                typeof commentText === "string" &&
-                commentText.startsWith("{")
-              ) {
-                try {
-                  const parsedContent = JSON.parse(commentText);
-                  commentText = parsedContent.text || "";
-                } catch (error) {
-                  console.error("Error parsing nested JSON:", error);
-                }
-              }
-
-              return {
-                comment: {
-                  ...comment,
-                  id: Number(comment.id), // Convert to number
-                  videoId: Number(comment.videoId),
-                  timestamp: Number(comment.timestamp),
-                },
-                username: comment.username || "Anonymous", // Use the username from the comment
-                content: commentText, // Now correctly extracting "Hello"
-                profilePicCID: comment.profilePicCID || "", // Use the profilePicCID from the comment
-              };
-            } catch (err) {
-              console.error("Error fetching comment from IPFS:", err);
-              return null;
-            }
-          })
-        );
-
-        // Filter out null values and update state
-        setCommentsWithUsernames(
-          commentsWithContent.filter((comment) => comment !== null) as {
-            comment: CommentDataFromContract;
-            username: string;
-            content: string;
-            profilePicCID: string;
-          }[]
-        );
-
-        console.log("this is real data :- ", commentsWithContent);
-      } catch (error) {
-        console.error("Error fetching comments content from IPFS:", error);
-      }
-    };
-
-    if (comments.length > 0) {
-      fetchCommentContent();
-    }
-  }, [comments]);
-
-  useEffect(() => {
-    console.log("Fetched Comments from contract:", fetchedComments);
-    if (fetchedComments) {
-      setComments(fetchedComments);
-    }
-  }, [fetchedComments]);
-
-  if (loading) {
-    return <LoadingScreen/>;
-  }
-
-  if (!videoData) {
-    return <p className="text-red-500">Error: Video data is missing.</p>;
-  }
-
   const convertTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleString("en-US", {
+    return new Date(timestamp * 1000).toLocaleString("en-US", {
       weekday: "short",
       year: "numeric",
       month: "short",
@@ -315,40 +346,72 @@ const WatchVideo: React.FC = () => {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-      timeZone: "UTC",
     });
   };
 
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  if (!videoData) {
+    return <p className="text-red-500">Error: Video data is missing.</p>;
+  }
+
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-background text-foreground p-4">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-background text-foreground p-2 sm:p-4">
       {/* Left Section - Video & Details */}
-      <div className="w-full md:w-[70%] flex flex-col space-y-2 md:pr-4">
+      <div className="w-full lg:w-[70%] flex flex-col space-y-2 lg:pr-4">
         {/* Video Player */}
-        <div className="w-full aspect-video rounded-lg shadow-lg bg-black">
-          <video controls autoPlay className="w-full h-full rounded-lg">
-            {videoData.videoUrl && (
-              <source src={videoData.videoUrl} type="video/mp4" />
+        <div className="w-full aspect-video rounded-lg shadow-lg bg-black relative">
+          <video
+            key={selectedResolution}
+            src={getIPFSUrl(
+              selectedResolution === "original"
+                ? extractCID(videoData?.videoUrl || "")
+                : selectedResolution
             )}
-            Your browser does not support the video tag.
-          </video>
+            controls
+            className="w-full h-full rounded-lg object-contain"
+            autoPlay
+          />
         </div>
 
+        {/* Resolution Chips - Moved below video player */}
+        {videoData.resolutions.length > 0 && (
+          <div className="flex flex-wrap gap-2 justify-start sm:justify-end mt-2">
+            {videoData.resolutions.map(({ label, cid }) => (
+              <button
+                key={cid}
+                onClick={() => setSelectedResolution(cid)}
+                className={`px-3 py-1 rounded-full text-xs sm:text-sm border ${
+                  selectedResolution === cid
+                    ? "bg-accent text-white border-accent"
+                    : "bg-background text-foreground border-border hover:bg-secondary"
+                } transition-colors`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Video Title & Description */}
-        <h1 className="text-2xl font-bold">
-          {videoData.title || "Untitled Video"}
-        </h1>
-        <p className="text-sm text-mutedText">
-          {videoData.description || "No description available"}
-        </p>
+        <div className="space-y-2">
+          <h1 className="text-xl sm:text-2xl font-bold line-clamp-2">
+            {videoData.title || "Untitled Video"}
+          </h1>
+          <p className="text-xs sm:text-sm text-mutedText line-clamp-3">
+            {videoData.description || "No description available"}
+          </p>
+        </div>
 
         {/* Owner Section */}
-        <div className="flex items-center justify-between pt-3 pb-5">
+        <div className="flex items-center justify-between pt-2 sm:pt-3 pb-3 sm:pb-5">
           <Link
             href={`/profile/${profileData.username}`}
-            className="flex items-center gap-4 cursor-pointer group" // Added `group` for parent hover
+            className="flex items-center gap-2 sm:gap-4 cursor-pointer group flex-1 min-w-0"
           >
-            {/* Profile Picture */}
-            <div className="w-8 h-8 rounded-full overflow-hidden transition-transform duration-300 ease-in-out group-hover:scale-110">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full overflow-hidden transition-transform duration-300 ease-in-out group-hover:scale-110 shrink-0">
               {profileData.profilePicCID ? (
                 <Image
                   src={profileData.profilePicCID}
@@ -364,103 +427,93 @@ const WatchVideo: React.FC = () => {
               )}
             </div>
 
-            {/* Username and View Profile */}
-            <div className="flex flex-col space-y-1">
-              <h6 className="text-sm font-medium transition-colors duration-300 ease-in-out group-hover:text-accent">
+            <div className="flex flex-col space-y-0 sm:space-y-1 min-w-0">
+              <h6 className="text-xs sm:text-sm font-medium transition-colors duration-300 ease-in-out group-hover:text-accent truncate">
                 @{profileData.username || videoData.owner}
               </h6>
-              <p className="text-xs text-mutedText font-body transition-colors duration-300 ease-in-out group-hover:text-accent">
+              <p className="text-[10px] sm:text-xs text-mutedText font-body transition-colors duration-300 ease-in-out group-hover:text-accent">
                 View Profile
               </p>
             </div>
           </Link>
 
-          {/* Tip Button */}
-          <button
-            onClick={() => {
-              console.log("Tip sent to:", profileData.username || videoData.owner);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-white text-lg rounded-lg hover:bg-accent/90 transition-colors hover:shadow-md active:scale-95"
-          >
-            <HeartHandshake color="#E0E0E0" />
-            <h6 className="text-foreground text-sm font-heading">Give Support</h6>
-          </button>
+          <div className="ml-2 sm:ml-4">
+            <TipButton
+              uploader={videoData.owner as `0x${string}`}
+              uploaderName={profileData.username ?? "Unknown"}
+              uploaderPicCID={profileData.profilePicCID ?? ""}
+              username={myProfileData.username}
+              userProfilePicCID={myProfileData.profilePicCID ?? ""}
+            />
+          </div>
         </div>
       </div>
 
       {/* Right Section - Comments */}
-      <div className="w-full md:w-[30%] bg-secondary p-4 rounded-lg flex flex-col max-h-[70vh] md:max-h-[80vh]">
-        {/* Comments Header */}
-        <h2 className="text-lg font-heading font-medium mb-4 text-foreground">
+      <div className="w-full lg:w-[30%] bg-secondary p-2 sm:p-4 rounded-lg flex flex-col h-[40vh] sm:h-[50vh] lg:h-[80vh] mt-4 lg:mt-0">
+        <h2 className="text-base sm:text-lg font-heading font-medium mb-2 sm:mb-4 text-foreground">
           Comments
         </h2>
 
-        {/* Comments List (Scrollable) */}
-        <div className="flex-1 overflow-y-auto px-2">
+        <div className="flex-1 overflow-y-auto px-1 sm:px-2">
           {commentsWithUsernames.length > 0 ? (
             commentsWithUsernames.map(
               ({ comment, username, content, profilePicCID }) => (
                 <div
-                  key={comment.id}
-                  className="mb-4 p-4 bg-background rounded-lg shadow-sm"
+                  key={`${comment.id}-${comment.timestamp}`}
+                  className="mb-3 sm:mb-4 p-2 sm:p-4 bg-background rounded-lg shadow-sm"
                 >
-                  {/* Clickable Profile Section */}
                   <div
-                    onClick={() => router.replace(`/profile/${username}`)}
-                    className="flex items-center gap-2 group cursor-pointer" // Added `group` for parent hover
+                    onClick={() => router.push(`/profile/${username}`)}
+                    className="flex items-center gap-2 group cursor-pointer"
                   >
-                    {/* Profile Picture */}
                     <div className="transition-transform duration-200 ease-in-out group-hover:scale-105">
                       {profilePicCID ? (
                         <Image
-                          src={profilePicCID || ""}
+                          src={profilePicCID}
                           alt="Profile"
                           width={30}
                           height={30}
-                          className="w-8 h-8 rounded-full object-cover"
+                          className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover"
                         />
                       ) : (
-                        <WalletAvatar address={comment.author} size={30} />
+                        <WalletAvatar address={comment.author} size={24} />
                       )}
                     </div>
-
-                    {/* Username */}
-                    <span className="text-sm font-heading text-foreground transition-colors duration-200 ease-in-out group-hover:text-foreground/70">
+                    <span className="text-xs sm:text-sm font-heading text-foreground transition-colors duration-200 ease-in-out group-hover:text-foreground/70 truncate">
                       @{username}
                     </span>
                   </div>
 
-                  {/* Comment Content */}
-                  <p className="text-sm font-body text-foreground mt-1">
-                    {content || "Loading comment..."}
+                  <p className="text-xs sm:text-sm font-body text-foreground mt-1 line-clamp-3">
+                    {content}
                   </p>
 
-                  {/* Timestamp */}
-                  <p className="text-xs font-body text-mutedText mt-1">
-                    ({convertTimestamp(comment.timestamp)})
+                  <p className="text-[10px] sm:text-xs font-body text-mutedText mt-1">
+                    {convertTimestamp(comment.timestamp)}
                   </p>
                 </div>
               )
             )
           ) : (
-            <p className="text-sm text-mutedText font-body">
+            <p className="text-xs sm:text-sm text-mutedText font-body">
               No comments yet. Be the first to comment!
             </p>
           )}
         </div>
 
-        {/* Add Comment Input (Fixed at the Bottom) */}
-        <div className="mt-4">
+        <div className="mt-2 sm:mt-4">
           <textarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Write a comment..."
-            className="text-sm font-body w-full p-2 bg-background text-foreground border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+            className="text-xs sm:text-sm font-body w-full p-2 bg-background text-foreground border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
             rows={2}
           />
           <button
             onClick={addComment}
-            className="mt-2 text-sm font-heading bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent/90 transition-colors w-full"
+            disabled={!newComment.trim()}
+            className="mt-1 sm:mt-2 text-xs sm:text-sm font-heading bg-accent text-white px-3 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-accent/90 transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Add Comment
           </button>

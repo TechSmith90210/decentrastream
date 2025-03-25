@@ -6,7 +6,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { VideoGridItemProps } from "@/lib/types";
 import WalletAvatar from "./walletavatar";
 
-dayjs.extend(relativeTime); // Enable "from now" functionality
+dayjs.extend(relativeTime);
 
 export function VideoGridItem({
   id = "unknown-id",
@@ -15,18 +15,22 @@ export function VideoGridItem({
   description,
   videoUrl,
   owner,
-  // postedAt,
+  videoCids = [], // Add this prop
 }: VideoGridItemProps) {
-  const safeThumbnailUrl = thumbnailurl || "/placeholder.jpg"; // Fallback thumbnail
+  const safeThumbnailUrl = thumbnailurl || "/placeholder.jpg";
 
-  // // Convert postedAt to a number and format timestamp
-  // const formattedTime =
-  //   postedAt && !isNaN(Number(postedAt))
-  //     ? dayjs(Number(postedAt) * 1000).fromNow()
-  //     : "Unknown time";
+  // Create URL-encoded query string with videoCids
+  const queryParams = new URLSearchParams({
+    videoUrl: encodeURIComponent(videoUrl || ""),
+    title: encodeURIComponent(title),
+    description: encodeURIComponent(description || ""),
+    thumbnailurl: encodeURIComponent(safeThumbnailUrl),
+    owner: encodeURIComponent(owner || ""),
+    cids: encodeURIComponent(JSON.stringify(videoCids)), // Add videoCids
+  });
 
-  // Create a URL-encoded query string
-  const videoLink = `/home/watch/${encodeURIComponent(id)}?videoUrl=${encodeURIComponent(videoUrl || "")}&title=${encodeURIComponent(title)}&description=${encodeURIComponent(description || "")}&thumbnailurl=${encodeURIComponent(safeThumbnailUrl)}&owner=${encodeURIComponent(owner || "")}`;
+  const videoLink = `/home/watch/${encodeURIComponent(id)}?${queryParams}`;
+  console.log(videoCids);
 
   return (
     <Link href={videoLink} passHref>
@@ -35,31 +39,34 @@ export function VideoGridItem({
         whileHover={{ scale: 1.02 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
       >
-        {/* Thumbnail with fixed 16:9 aspect ratio */}
-        <div className=" relative w-full aspect-video rounded-lg overflow-hidden">
+        {/* Thumbnail */}
+        <div className="relative w-full aspect-video rounded-lg overflow-hidden">
           <Image
             src={safeThumbnailUrl}
             alt={title}
             className="w-full h-full object-cover"
             width={400}
-            height={200} // 16:9 ratio (YouTube-like)
+            height={200}
             priority
           />
         </div>
 
         {/* Video Details */}
         <div className="flex gap-2 items-center">
-          <Link href={`/profile/${''}`} className="flex shrink-0 ">
+          <Link href={`/profile/${''}`} className="flex shrink-0">
             <WalletAvatar address={owner} size={30} />
           </Link>
           <div>
-          <Link href={``}>
-            <h1 className="text-sm text-foreground font-heading font-medium">{title}</h1>
-          </Link>
-          <h6 className="text-xs text-mutedText font-light line-clamp-1">{description}</h6>
+            <Link href={``}>
+              <h1 className="text-sm text-foreground font-heading font-medium">
+                {title}
+              </h1>
+            </Link>
+            <h6 className="text-xs text-mutedText font-light line-clamp-1">
+              {description}
+            </h6>
           </div>
         </div>
-
       </motion.div>
     </Link>
   );

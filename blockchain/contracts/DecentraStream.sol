@@ -6,7 +6,8 @@ contract DecentraStream {
         uint256 id;
         string title;
         string description;
-        string videoCID;
+        string originalVideoCID;
+        string[] videoCIDs;
         string thumbnailCID;
         string category;
         string[] tags;
@@ -22,7 +23,8 @@ contract DecentraStream {
         uint256 indexed id,
         string title,
         string description,
-        string videoCID,
+        string originalVideoCID,
+        string[] videoCIDs,
         string thumbnailCID,
         string category,
         string[] tags,
@@ -30,10 +32,17 @@ contract DecentraStream {
         uint256 timestamp
     );
 
+    modifier onlyOwner(uint256 _id) {
+        require(videos[_id].owner == msg.sender, "Only owner can perform this action");
+        _;
+    }
+
+    // Upload video with original CID and multiple versions
     function uploadVideo(
         string memory _title,
         string memory _description,
-        string memory _videoCID,
+        string memory _originalVideoCID, // Original video CID
+        string[] memory _videoCIDs,      // Multiple versions of the video
         string memory _thumbnailCID,
         string memory _category,
         string[] memory _tags
@@ -43,7 +52,8 @@ contract DecentraStream {
             videoCount,
             _title,
             _description,
-            _videoCID,
+            _originalVideoCID,
+            _videoCIDs,
             _thumbnailCID,
             _category,
             _tags,
@@ -56,7 +66,8 @@ contract DecentraStream {
             videoCount,
             _title,
             _description,
-            _videoCID,
+            _originalVideoCID,
+            _videoCIDs,
             _thumbnailCID,
             _category,
             _tags,
@@ -65,9 +76,7 @@ contract DecentraStream {
         );
     }
 
-    function getUserVideos(
-        address _user
-    ) public view returns (uint256[] memory) {
+    function getUserVideos(address _user) public view returns (uint256[] memory) {
         return userVideos[_user];
     }
 

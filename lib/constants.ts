@@ -4,6 +4,8 @@ export const profileContractAddress =
   process.env.NEXT_PUBLIC_PROFILE_CONTRACT_ADDRESS || "";
 export const commentContractAddress =
   process.env.NEXT_PUBLIC_COMMENT_CONTRACT_ADDRESS || "";
+export const tippingContractAddress =
+  process.env.NEXT_PUBLIC_TIPPING_CONTRACT_ADDRESS || "";
 
 export const videoContractAbi = [
   {
@@ -20,8 +22,14 @@ export const videoContractAbi = [
       {
         indexed: false,
         internalType: "string",
-        name: "videoCID",
+        name: "originalVideoCID",
         type: "string",
+      },
+      {
+        indexed: false,
+        internalType: "string[]",
+        name: "videoCIDs",
+        type: "string[]",
       },
       {
         indexed: false,
@@ -66,7 +74,8 @@ export const videoContractAbi = [
           { internalType: "uint256", name: "id", type: "uint256" },
           { internalType: "string", name: "title", type: "string" },
           { internalType: "string", name: "description", type: "string" },
-          { internalType: "string", name: "videoCID", type: "string" },
+          { internalType: "string", name: "originalVideoCID", type: "string" },
+          { internalType: "string[]", name: "videoCIDs", type: "string[]" },
           { internalType: "string", name: "thumbnailCID", type: "string" },
           { internalType: "string", name: "category", type: "string" },
           { internalType: "string[]", name: "tags", type: "string[]" },
@@ -89,10 +98,36 @@ export const videoContractAbi = [
     type: "function",
   },
   {
+    inputs: [{ internalType: "uint256", name: "_id", type: "uint256" }],
+    name: "getVideo",
+    outputs: [
+      {
+        components: [
+          { internalType: "uint256", name: "id", type: "uint256" },
+          { internalType: "string", name: "title", type: "string" },
+          { internalType: "string", name: "description", type: "string" },
+          { internalType: "string", name: "originalVideoCID", type: "string" },
+          { internalType: "string[]", name: "videoCIDs", type: "string[]" },
+          { internalType: "string", name: "thumbnailCID", type: "string" },
+          { internalType: "string", name: "category", type: "string" },
+          { internalType: "string[]", name: "tags", type: "string[]" },
+          { internalType: "address", name: "owner", type: "address" },
+          { internalType: "uint256", name: "timestamp", type: "uint256" },
+        ],
+        internalType: "struct DecentraStream.Video",
+        name: "",
+        type: "tuple",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       { internalType: "string", name: "_title", type: "string" },
       { internalType: "string", name: "_description", type: "string" },
-      { internalType: "string", name: "_videoCID", type: "string" },
+      { internalType: "string", name: "_originalVideoCID", type: "string" },
+      { internalType: "string[]", name: "_videoCIDs", type: "string[]" },
       { internalType: "string", name: "_thumbnailCID", type: "string" },
       { internalType: "string", name: "_category", type: "string" },
       { internalType: "string[]", name: "_tags", type: "string[]" },
@@ -100,6 +135,39 @@ export const videoContractAbi = [
     name: "uploadVideo",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "address", name: "", type: "address" },
+      { internalType: "uint256", name: "", type: "uint256" },
+    ],
+    name: "userVideos",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "videoCount",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    name: "videos",
+    outputs: [
+      { internalType: "uint256", name: "id", type: "uint256" },
+      { internalType: "string", name: "title", type: "string" },
+      { internalType: "string", name: "description", type: "string" },
+      { internalType: "string", name: "originalVideoCID", type: "string" },
+      { internalType: "string", name: "thumbnailCID", type: "string" },
+      { internalType: "string", name: "category", type: "string" },
+      { internalType: "address", name: "owner", type: "address" },
+      { internalType: "uint256", name: "timestamp", type: "uint256" },
+    ],
+    stateMutability: "view",
     type: "function",
   },
 ];
@@ -310,6 +378,114 @@ export const commentContractAbi = [
       { internalType: "uint256", name: "", type: "uint256" },
     ],
     name: "videoComments",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+];
+
+export const tippingContractAbi = [
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "uploader",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "message",
+        type: "string",
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "username",
+        type: "string",
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "profilePicCID",
+        type: "string",
+      },
+    ],
+    name: "TipReceived",
+    type: "event",
+  },
+  {
+    inputs: [{ internalType: "address", name: "_uploader", type: "address" }],
+    name: "getTipCount",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "_uploader", type: "address" }],
+    name: "getTips",
+    outputs: [
+      {
+        components: [
+          { internalType: "address", name: "sender", type: "address" },
+          { internalType: "uint256", name: "amount", type: "uint256" },
+          { internalType: "string", name: "message", type: "string" },
+          { internalType: "string", name: "username", type: "string" },
+          { internalType: "string", name: "profilePicCID", type: "string" },
+        ],
+        internalType: "struct DecentraTipping.Tip[]",
+        name: "",
+        type: "tuple[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "address payable", name: "_uploader", type: "address" },
+      { internalType: "string", name: "_message", type: "string" },
+      { internalType: "string", name: "_username", type: "string" },
+      { internalType: "string", name: "_profilePicCID", type: "string" },
+    ],
+    name: "tipUploader",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "address", name: "", type: "address" },
+      { internalType: "uint256", name: "", type: "uint256" },
+    ],
+    name: "tipsReceived",
+    outputs: [
+      { internalType: "address", name: "sender", type: "address" },
+      { internalType: "uint256", name: "amount", type: "uint256" },
+      { internalType: "string", name: "message", type: "string" },
+      { internalType: "string", name: "username", type: "string" },
+      { internalType: "string", name: "profilePicCID", type: "string" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "", type: "address" }],
+    name: "totalTips",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",

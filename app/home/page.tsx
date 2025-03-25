@@ -55,7 +55,7 @@ const HomePage: React.FC = () => {
     if (Array.isArray(fetchedVideos)) {
       const formattedVideos: VideoGridItemProps[] = fetchedVideos.map(
         (video: VideoDataFromContract, index: number) => {
-          const cleanedVideoCID = cleanCID(video.videoCID);
+          const cleanedVideoCID = cleanCID(video.originalVideoCID);
           const cleanedThumbnailCID = cleanCID(video.thumbnailCID);
 
           return {
@@ -68,12 +68,13 @@ const HomePage: React.FC = () => {
               name: video.owner || "Unknown Uploader",
               profileUrl: "/profile.png",
             },
-            videoUrl: formatIPFSUrl(cleanedVideoCID), // ✅ FIX: Convert to full IPFS URL
+            videoUrl: formatIPFSUrl(cleanedVideoCID),
             thumbnailurl: formatIPFSUrl(cleanedThumbnailCID),
             postedAt: String(video.timestamp),
             owner: video.owner || "0x0",
             timestamp: video.timestamp,
-            videoCID: video.videoCID,
+            videoCID: video.originalVideoCID,
+            videoCids: video.videoCIDs
           };
         }
       );

@@ -1,5 +1,7 @@
 import axios from "axios";
 
+const PINATA_BASE_URL = "https://api.pinata.cloud";
+
 export const uploadToPinata = async (file: File) => {
   try {
     const formData = new FormData();
@@ -28,7 +30,7 @@ export const uploadToPinata = async (file: File) => {
     }
 
     // Upload to Pinata
-    const { data } = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
+    const { data } = await axios.post(`${PINATA_BASE_URL}/pinning/pinFileToIPFS`, formData, {
       headers: {
         Authorization: `Bearer ${jwtToken}`, // Use JWT for authentication
         "Content-Type": "multipart/form-data",
@@ -74,7 +76,7 @@ export const uploadTextToPinata = async (text: string) => {
     };
 
     // Upload JSON to Pinata
-    const { data } = await axios.post("https://api.pinata.cloud/pinning/pinJSONToIPFS", payload, {
+    const { data } = await axios.post(`${PINATA_BASE_URL}/pinning/pinJSONToIPFS`, payload, {
       headers: {
         Authorization: `Bearer ${jwtToken}`,
         "Content-Type": "application/json",
@@ -97,5 +99,37 @@ export const uploadTextToPinata = async (text: string) => {
       console.error("🚨 Unknown Error:", error);
       throw new Error("An unknown error occurred.");
     }
+  }
+};
+
+export const fetchFilenameFromPinata = async (cid: string): Promise<string | null> => {
+  try {
+    const jwtToken = process.env.NEXT_PUBLIC_PINATA_JWT;
+    if (!jwtToken) {
+      throw new Error("Missing Pinata JWT token in environment variables.");
+    }
+
+    const response = await axios.get(`${PINATA_BASE_URL}/data/pinList`, {
+      headers: {
+        Authorization: `Bearer ${jwtToken}`,
+      },
+      params: {
+        hashContains: cid, // Filter by CID
+      },
+    });
+
+    const files = response.data.rows;
+
+    if (files.length === 0) {
+      console.log("No file found for CID:", cid);
+      return null;
+    }
+
+    const filename = files[0].metadata.name; // Extract filename
+    console.log("Filename:", filename);
+    return filename;
+  } catch (error) {
+    console.error("🚨 Error fetching filename from Pinata:", error);
+    return null;
   }
 };

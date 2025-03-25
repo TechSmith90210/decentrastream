@@ -1,6 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'DNS-Prefetch-Control', value: 'on' }
+        ],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
