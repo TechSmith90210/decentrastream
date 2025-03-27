@@ -37,11 +37,11 @@ npm start
 
 ## 🚀 Key Features  
 - **📡 Decentralized Video Hosting** – Videos stored on **IPFS**, ensuring censorship resistance.  
-- **🎞 Adaptive Streaming** – Transcoding with **FFmpeg**, storing multiple video qualities on IPFS.  
+- **🎞 Adaptive Streaming** – Videos are transcoded with **FFmpeg** and stored in multiple qualities on IPFS.  
 - **📝 On-Chain Comments** – Managed via **`DecentraComments.sol`**.  
-- **💰 Crypto Tipping** – ETH tipping via **`DecentraTipping.sol`**.  
-- **👤 Custom Profiles** – Managed with **`DecentraProfile.sol`**.  
-- **🔐 Web3 Authentication** – MetaMask login via **Wagmi v2**.  
+- **💰 Crypto Tipping** – ETH tipping powered by **`DecentraTipping.sol`**.  
+- **👤 Custom Profiles** – Users can create and manage profiles via **`DecentraProfile.sol`**.  
+- **🔐 Web3 Authentication** – Seamless MetaMask login via **Wagmi v2**.  
 
 ---
 
@@ -55,13 +55,36 @@ npm start
 
 ## 📂 Smart Contracts  
 DecentraStream's smart contracts power the platform:  
-- **`DecentraStream.sol`** – Stores video details and functions.  
+- **`DecentraStream.sol`** – Stores video details and core functionality.  
 - **`DecentraProfile.sol`** – Manages user profiles.  
 - **`DecentraComments.sol`** – Enables on-chain comments.  
 - **`DecentraTipping.sol`** – Facilitates ETH tipping.  
 
 _All contracts are deployed on the Sepolia Testnet._  
 
+---
+
+## 🔑 Environment Variables  
+Create a `.env` file in the root directory and add the following:  
+
+```plaintext
+NEXT_PUBLIC_PROJECT_ID=your_project_id
+PRIVATE_KEY=your_private_key
+
+# Contract Addresses
+NEXT_PUBLIC_VIDEO_CONTRACT_ADDRESS=0xYourVideoContractAddress
+NEXT_PUBLIC_PROFILE_CONTRACT_ADDRESS=0xYourProfileContractAddress
+NEXT_PUBLIC_COMMENT_CONTRACT_ADDRESS=0xYourCommentContractAddress
+NEXT_PUBLIC_TIPPING_CONTRACT_ADDRESS=0xYourTippingContractAddress
+
+NEXT_PUBLIC_BACKEND_URL=your_backend_url
+
+NEXT_PUBLIC_PINATA_API_KEY=your_pinata_api_key
+LIVEPEER_API_KEY=your_livepeer_api_key
+
+PINATA_SECRET_API_KEY=your_pinata_secret_key
+NEXT_PUBLIC_PINATA_JWT=your_pinata_jwt
+```
 ---
 
 ## 🔌 Backend API  
