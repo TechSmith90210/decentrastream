@@ -84,5 +84,3 @@ We welcome contributions! To contribute:
 This project is licensed under the **MIT License**.  
 
 ---
-
-Now, everything is correctly linked! Let me know if you need further tweaks. 🚀
